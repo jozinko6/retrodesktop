@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { DetectionResult, EmulatorStatus, Game, LaunchResult } from "../types";
+import type { DetectionResult, EmulatorStatus, Game, LaunchResult, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
 import { demoGames } from "../data/catalog";
 
 const inTauri = () => "__TAURI_INTERNALS__" in window;
@@ -61,4 +61,27 @@ export async function chooseRetroArchCore(gameId: string): Promise<boolean> {
   if (typeof result !== "string") return false;
   await invoke("configure_retroarch_game", { gameId, corePath: result });
   return true;
+}
+
+export async function scanWindowsGames(roots: string[] = []): Promise<WindowsDiscoveryResult> {
+  if (!inTauri()) return { candidates: [], scannedSources: ["Steam", "Epic Games", "GOG", "Windows skratky"], warnings: ["Discovery vyžaduje desktopovú aplikáciu."] };
+  return invoke<WindowsDiscoveryResult>("scan_windows_games", { roots });
+}
+
+export async function listWindowsCandidates(): Promise<WindowsGameCandidate[]> {
+  return inTauri() ? invoke<WindowsGameCandidate[]>("list_windows_candidates") : [];
+}
+
+export async function choosePortableScanRoot(): Promise<string | null> {
+  if (!inTauri()) return null;
+  const result = await open({ directory: true, multiple: false, title: "Vyber priečinok pre hlboký scan Windows hier" });
+  return typeof result === "string" ? result : null;
+}
+
+export async function confirmWindowsGames(candidateIds: string[]): Promise<Game[]> {
+  return inTauri() ? invoke<Game[]>("confirm_windows_games", { candidateIds }) : [];
+}
+
+export async function rejectWindowsGames(candidateIds: string[]): Promise<void> {
+  if (inTauri()) await invoke("reject_windows_games", { candidateIds });
 }

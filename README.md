@@ -6,6 +6,8 @@ RetroBox Desktop is a local Windows 10/11 x64 big-picture library for legally ow
 
 The repository now builds as a native Windows application and includes a complete first RetroArch path: select and validate `retroarch.exe`, scan a watched folder, choose a libretro core DLL for a game, launch without shell interpolation, track the process and play session, capture a launch log, update play time, and restore application focus.
 
+Windows Game Discovery can scan Steam libraries, Epic manifests, GOG registry entries, Windows shortcuts, and an explicitly selected portable-games directory. Results are deduplicated and shown for confirmation before entering the Windows category. See [WINDOWS_DISCOVERY.md](WINDOWS_DISCOVERY.md).
+
 Remote metadata clients, streamed/resumable production downloads, managed emulator installation, archive extraction, credential-vault integration, and save snapshot UI remain follow-up work. The UI does not claim these are complete.
 
 ## Requirements

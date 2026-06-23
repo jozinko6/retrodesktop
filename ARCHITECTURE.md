@@ -21,6 +21,7 @@ Rust owns:
 - `download`: provider recognition and public-link normalization.
 - `security`: URL, filename, child-path, and token-log safety.
 - `emulators`: adapter registry and per-emulator argument arrays.
+- `windows_discovery`: launcher manifests, registry/shortcut adapters, bounded portable heuristics, candidate deduplication, and confirmation-first import.
 - `domain`: serialized command contracts shared with TypeScript equivalents.
 
 ## Data flow

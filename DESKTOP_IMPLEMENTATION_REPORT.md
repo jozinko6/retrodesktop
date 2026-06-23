@@ -13,6 +13,7 @@
 - Production empty state with no fictional games unless explicit preview mode is enabled.
 - Persistent watched directories, stable game IDs, `game_files`, and integrated CUE track validation.
 - RetroArch executable/core configuration and process launch with stdout/stderr log, play-session persistence, play-time update, minimize/restore, and focus return.
+- Windows Game Discovery for Steam, Epic, GOG, Windows shortcuts, and bounded portable scans, including confidence evidence, confirmation, deduplication, and direct launch records.
 - Frontend and Rust unit tests plus Windows CI.
 - Successfully generated NSIS and MSI installers on Windows.
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Gamepad2, Grid2X2, Heart, Home, Library, Play, Search, Settings, SlidersHorizontal, UserRound, Wrench } from "lucide-react";
+import { Download, Gamepad2, Grid2X2, Heart, Home, Library, MonitorPlay, Play, Search, Settings, SlidersHorizontal, UserRound, Wrench } from "lucide-react";
 import { useGamepadNavigation } from "./hooks/useGamepadNavigation";
 import { chooseDirectory, chooseRetroArchCore, launchGame, listGames, scanDirectory } from "./lib/tauri";
 import type { Game } from "./types";
@@ -8,8 +8,9 @@ import { GameCard } from "./components/GameCard";
 import { IconButton } from "./components/IconButton";
 import { Onboarding } from "./components/Onboarding";
 import { EmptyLibrary } from "./components/EmptyLibrary";
+import { WindowsDiscovery } from "./components/WindowsDiscovery";
 
-type Page = "home" | "library" | "systems" | "downloads" | "emulators" | "settings";
+type Page = "home" | "library" | "systems" | "windows" | "downloads" | "emulators" | "settings";
 
 export function App() {
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem("retrobox:onboarded") === "true");
@@ -80,6 +81,7 @@ export function App() {
           <IconButton label="Domov" active={page === "home"} onClick={() => setPage("home")}><Home /></IconButton>
           <IconButton label="Všetky hry" active={page === "library"} onClick={() => setPage("library")}><Library /></IconButton>
           <IconButton label="Systémy" active={page === "systems"} onClick={() => setPage("systems")}><Grid2X2 /></IconButton>
+          <IconButton label="Windows hry" active={page === "windows"} onClick={() => setPage("windows")}><MonitorPlay /></IconButton>
           <IconButton label="Sťahovania" active={page === "downloads"} onClick={() => setPage("downloads")}><Download /></IconButton>
           <IconButton label="Emulátory" active={page === "emulators"} onClick={() => setPage("emulators")}><Wrench /></IconButton>
         </nav>
@@ -92,7 +94,9 @@ export function App() {
           <button className="profile"><UserRound size={20} /><span>Rodina</span></button>
         </header>
 
-        {page === "emulators" ? <EmulatorManager /> : games.length === 0 ? <EmptyLibrary onAddFolder={() => void addFolder()} /> : (
+        {page === "emulators" ? <EmulatorManager /> : page === "windows" ? (
+          <WindowsDiscovery onImported={(items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); setPage("library"); }} />
+        ) : games.length === 0 ? <EmptyLibrary onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} /> : (
           <main>
             <section className="hero" style={{ "--hero-accent": selected?.accent ?? "#15d6ff" } as React.CSSProperties}>
               <div className="hero-art" aria-hidden="true"><span /><span /><span /></div>
@@ -103,7 +107,7 @@ export function App() {
                 <p className="description">{selected?.description}</p>
                 <div className="hero-actions">
                   <button className="primary" onClick={() => void play()}><Play size={21} fill="currentColor" /> Hrať</button>
-                  <button className="secondary" onClick={() => void configureCore()}><SlidersHorizontal size={20} /> Vybrať core</button>
+                  {selected?.systemId === "windows" ? null : <button className="secondary" onClick={() => void configureCore()}><SlidersHorizontal size={20} /> Vybrať core</button>}
                 </div>
               </div>
             </section>

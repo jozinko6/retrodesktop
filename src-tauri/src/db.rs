@@ -17,6 +17,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0003_seed_systems",
         include_str!("../migrations/0003_seed_systems.sql"),
     ),
+    (
+        "0004_windows_discovery",
+        include_str!("../migrations/0004_windows_discovery.sql"),
+    ),
 ];
 
 pub fn open(path: &Path) -> AppResult<Connection> {

@@ -2805,6 +2805,7 @@ dependencies = [
  "url",
  "uuid",
  "walkdir",
+ "winreg",
 ]
 
 [[package]]

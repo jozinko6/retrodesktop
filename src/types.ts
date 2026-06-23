@@ -4,7 +4,7 @@ export type SystemId =
   | "saturn" | "dreamcast" | "ps1" | "ps2" | "ps3" | "psp"
   | "gamecube" | "wii" | "wiiu" | "arcade" | "dos" | "scummvm"
   | "c64" | "amiga" | "msx" | "atari2600" | "atari5200"
-  | "atari7800" | "lynx" | "pcengine" | "neogeo" | "unknown";
+  | "atari7800" | "lynx" | "pcengine" | "neogeo" | "windows" | "unknown";
 
 export interface Game {
   id: string;
@@ -41,4 +41,24 @@ export interface DetectionResult {
   confidence: number;
   evidence: string[];
   candidates: Array<{ systemId: SystemId; confidence: number }>;
+}
+
+export interface WindowsGameCandidate {
+  id: string;
+  source: string;
+  sourceId?: string;
+  title: string;
+  installPath?: string;
+  launchKind: "exe" | "uri";
+  launchTarget: string;
+  launchArguments: string[];
+  workingDirectory?: string;
+  confidence: number;
+  evidence: string[];
+}
+
+export interface WindowsDiscoveryResult {
+  candidates: WindowsGameCandidate[];
+  scannedSources: string[];
+  warnings: string[];
 }

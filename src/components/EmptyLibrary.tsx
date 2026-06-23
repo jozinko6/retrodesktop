@@ -1,6 +1,6 @@
-import { FolderPlus, Link, Plus } from "lucide-react";
+import { FolderPlus, Link, MonitorPlay, Plus } from "lucide-react";
 
-export function EmptyLibrary({ onAddFolder }: { onAddFolder: () => void }) {
+export function EmptyLibrary({ onAddFolder, onWindowsScan }: { onAddFolder: () => void; onWindowsScan: () => void }) {
   return (
     <main className="empty-library">
       <div className="empty-symbol"><FolderPlus size={44} /></div>
@@ -9,6 +9,7 @@ export function EmptyLibrary({ onAddFolder }: { onAddFolder: () => void }) {
       <span>Vyber priečinok so svojimi vlastnými hernými zálohami. RetroBox ho bezpečne naskenuje a uloží ako sledovaný priečinok.</span>
       <div className="empty-actions">
         <button className="primary" onClick={onAddFolder}><FolderPlus size={20} /> Pridať priečinok</button>
+        <button className="secondary" onClick={onWindowsScan}><MonitorPlay size={20} /> Skenovať Windows hry</button>
         <button className="secondary" disabled><Plus size={20} /> Importovať hru</button>
         <button className="secondary" disabled><Link size={20} /> Pridať odkaz</button>
       </div>

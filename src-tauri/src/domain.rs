@@ -66,3 +66,27 @@ pub struct ResolvedDownload {
     pub url: String,
     pub log_safe_url: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowsGameCandidate {
+    pub id: String,
+    pub source: String,
+    pub source_id: Option<String>,
+    pub title: String,
+    pub install_path: Option<String>,
+    pub launch_kind: String,
+    pub launch_target: String,
+    pub launch_arguments: Vec<String>,
+    pub working_directory: Option<String>,
+    pub confidence: f32,
+    pub evidence: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowsDiscoveryResult {
+    pub candidates: Vec<WindowsGameCandidate>,
+    pub scanned_sources: Vec<String>,
+    pub warnings: Vec<String>,
+}
