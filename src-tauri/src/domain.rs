@@ -1,0 +1,52 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Game {
+    pub id: String,
+    pub title: String,
+    pub system_id: String,
+    pub primary_file: String,
+    pub description: String,
+    pub release_year: Option<i32>,
+    pub developer: Option<String>,
+    pub genre: Option<String>,
+    pub total_play_time_seconds: i64,
+    pub last_played_at: Option<String>,
+    pub favorite: bool,
+    pub accent: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DetectionCandidate {
+    pub system_id: String,
+    pub confidence: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DetectionResult {
+    pub system_id: Option<String>,
+    pub confidence: f32,
+    pub evidence: Vec<String>,
+    pub candidates: Vec<DetectionCandidate>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmulatorStatus {
+    pub id: String,
+    pub display_name: String,
+    pub state: String,
+    pub version: Option<String>,
+    pub executable: Option<String>,
+    pub supported_systems: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct LaunchCommand {
+    pub executable: std::path::PathBuf,
+    pub args: Vec<String>,
+    pub working_directory: Option<std::path::PathBuf>,
+}
