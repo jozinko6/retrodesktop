@@ -3,11 +3,15 @@ import { Download, Gamepad2, Grid2X2, Heart, Home, Library, MonitorPlay, Play, S
 import { useGamepadNavigation } from "./hooks/useGamepadNavigation";
 import { chooseDirectory, chooseRetroArchCore, launchGame, listGames, scanDirectory } from "./lib/tauri";
 import type { Game } from "./types";
+import { DownloadsPage } from "./components/DownloadsPage";
 import { EmulatorManager } from "./components/EmulatorManager";
+import { EmptyLibrary } from "./components/EmptyLibrary";
 import { GameCard } from "./components/GameCard";
 import { IconButton } from "./components/IconButton";
+import { LibraryPage } from "./components/LibraryPage";
 import { Onboarding } from "./components/Onboarding";
-import { EmptyLibrary } from "./components/EmptyLibrary";
+import { SettingsPage } from "./components/SettingsPage";
+import { SystemsPage } from "./components/SystemsPage";
 import { WindowsDiscovery } from "./components/WindowsDiscovery";
 
 type Page = "home" | "library" | "systems" | "windows" | "downloads" | "emulators" | "settings";
@@ -20,14 +24,20 @@ export function App() {
   const [message, setMessage] = useState<string>();
   useGamepadNavigation(onboarded);
 
-  useEffect(() => { void listGames().then((items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); }); }, []);
+  useEffect(() => {
+    void listGames().then((items) => {
+      setGames(items);
+      setSelectedId(items[0]?.id ?? "");
+    });
+  }, []);
+
   const selected = useMemo(() => games.find((game) => game.id === selectedId) ?? games[0], [games, selectedId]);
 
   useEffect(() => {
     const handler = (event: Event) => {
+      if (!games.length) return;
       const action = (event as CustomEvent<string>).detail;
       const index = games.findIndex((game) => game.id === selectedId);
-      if (!games.length) return;
       if (action === "right" || action === "down") setSelectedId(games[(index + 1) % games.length].id);
       if (action === "left" || action === "up") setSelectedId(games[(index - 1 + games.length) % games.length].id);
       if (action === "accept") void play();
@@ -69,6 +79,64 @@ export function App() {
     }
   }
 
+  function restartOnboarding() {
+    localStorage.removeItem("retrobox:onboarded");
+    setOnboarded(false);
+  }
+
+  function renderHome() {
+    if (!games.length) {
+      return <EmptyLibrary onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} />;
+    }
+    return (
+      <main>
+        <section className="hero" style={{ "--hero-accent": selected?.accent ?? "#15d6ff" } as React.CSSProperties}>
+          <div className="hero-art" aria-hidden="true"><span /><span /><span /></div>
+          <div className="hero-copy">
+            <p>Pokračovať v hraní</p>
+            <h1>{selected?.title}</h1>
+            <div className="metadata"><span>{selected?.systemId.toUpperCase()}</span><span>{selected?.releaseYear}</span><span>{selected?.genre}</span></div>
+            <p className="description">{selected?.description}</p>
+            <div className="hero-actions">
+              <button className="primary" onClick={() => void play()}><Play size={21} fill="currentColor" /> Hrať</button>
+              {selected?.systemId === "windows" ? null : <button className="secondary" onClick={() => void configureCore()}><SlidersHorizontal size={20} /> Vybrať core</button>}
+            </div>
+          </div>
+        </section>
+        <section className="rail">
+          <div className="section-heading"><div><p>Knižnica</p><h2>Nedávno hrané</h2></div><span>{games.length} hier</span></div>
+          <div className="game-row">
+            {games.map((game) => <GameCard key={game.id} game={game} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />)}
+          </div>
+        </section>
+        <section className="quick-links">
+          <button onClick={() => setPage("library")}><Heart /> Obľúbené</button>
+          <button onClick={() => setPage("systems")}><Grid2X2 /> Systémy</button>
+          <button onClick={() => setPage("library")}><Library /> Všetky hry</button>
+        </section>
+      </main>
+    );
+  }
+
+  function renderPage() {
+    switch (page) {
+      case "home":
+        return renderHome();
+      case "library":
+        return <LibraryPage games={games} selectedId={selectedId} onSelect={setSelectedId} onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} />;
+      case "systems":
+        return <SystemsPage games={games} onOpenLibrary={() => setPage("library")} />;
+      case "windows":
+        return <WindowsDiscovery onImported={(items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); setPage("library"); }} />;
+      case "downloads":
+        return <DownloadsPage />;
+      case "emulators":
+        return <EmulatorManager />;
+      case "settings":
+        return <SettingsPage onRestartOnboarding={restartOnboarding} />;
+    }
+  }
+
   if (!onboarded) {
     return <Onboarding onFinish={() => { localStorage.setItem("retrobox:onboarded", "true"); setOnboarded(true); }} />;
   }
@@ -87,41 +155,12 @@ export function App() {
         </nav>
         <IconButton label="Nastavenia" active={page === "settings"} onClick={() => setPage("settings")}><Settings /></IconButton>
       </aside>
-
       <div className="main-stage">
         <header className="topbar">
           <div><Search size={20} /><span>Hľadať hry</span><kbd>Y</kbd></div>
           <button className="profile"><UserRound size={20} /><span>Rodina</span></button>
         </header>
-
-        {page === "emulators" ? <EmulatorManager /> : page === "windows" ? (
-          <WindowsDiscovery onImported={(items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); setPage("library"); }} />
-        ) : games.length === 0 ? <EmptyLibrary onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} /> : (
-          <main>
-            <section className="hero" style={{ "--hero-accent": selected?.accent ?? "#15d6ff" } as React.CSSProperties}>
-              <div className="hero-art" aria-hidden="true"><span /><span /><span /></div>
-              <div className="hero-copy">
-                <p>Pokračovať v hraní</p>
-                <h1>{selected?.title}</h1>
-                <div className="metadata"><span>{selected?.systemId.toUpperCase()}</span><span>{selected?.releaseYear}</span><span>{selected?.genre}</span></div>
-                <p className="description">{selected?.description}</p>
-                <div className="hero-actions">
-                  <button className="primary" onClick={() => void play()}><Play size={21} fill="currentColor" /> Hrať</button>
-                  {selected?.systemId === "windows" ? null : <button className="secondary" onClick={() => void configureCore()}><SlidersHorizontal size={20} /> Vybrať core</button>}
-                </div>
-              </div>
-            </section>
-            <section className="rail">
-              <div className="section-heading"><div><p>Knižnica</p><h2>Nedávno hrané</h2></div><span>{games.length} hier</span></div>
-              <div className="game-row">
-                {games.map((game) => <GameCard key={game.id} game={game} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />)}
-              </div>
-            </section>
-            <section className="quick-links">
-              <button><Heart /> Obľúbené</button><button><Grid2X2 /> Systémy</button><button><Library /> Všetky hry</button>
-            </section>
-          </main>
-        )}
+        {renderPage()}
       </div>
       {message ? <div className="toast" role="status" onClick={() => setMessage(undefined)}>{message}</div> : null}
     </div>
