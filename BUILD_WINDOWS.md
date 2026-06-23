@@ -28,4 +28,6 @@ Expected installers:
 - `src-tauri/target/release/bundle/nsis/*.exe`
 - `src-tauri/target/release/bundle/msi/*.msi`
 
+The Windows build was verified on June 23, 2026 and produced both bundles.
+
 A portable ZIP can be assembled from the release executable and required Tauri runtime files after a successful signed build. It must not include user data or managed emulators.

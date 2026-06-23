@@ -13,6 +13,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0002_indexes",
         include_str!("../migrations/0002_indexes.sql"),
     ),
+    (
+        "0003_seed_systems",
+        include_str!("../migrations/0003_seed_systems.sql"),
+    ),
 ];
 
 pub fn open(path: &Path) -> AppResult<Connection> {
@@ -77,14 +81,43 @@ pub fn games(connection: &Connection) -> AppResult<Vec<Game>> {
     Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
-pub fn upsert_scanned_game(connection: &Connection, game: &Game) -> AppResult<()> {
+pub fn upsert_scanned_game(connection: &Connection, game: &Game) -> AppResult<String> {
+    let existing = connection.query_row(
+        "SELECT id FROM games WHERE primary_file=?1",
+        [&game.primary_file],
+        |row| row.get::<_, String>(0),
+    );
+    let stable_id = existing.unwrap_or_else(|_| game.id.clone());
     connection.execute(
         "INSERT INTO games (
           id, title, sort_title, system_id, primary_file, launch_file, description,
           total_play_time_seconds, favorite, accent, created_at, updated_at
         ) VALUES (?1, ?2, ?2, ?3, ?4, ?4, ?5, 0, 0, ?6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ON CONFLICT(primary_file) DO UPDATE SET title=excluded.title, system_id=excluded.system_id, updated_at=CURRENT_TIMESTAMP",
-        params![game.id, game.title, game.system_id, game.primary_file, game.description, game.accent],
+        params![stable_id, game.title, game.system_id, game.primary_file, game.description, game.accent],
+    )?;
+    connection.execute(
+        "INSERT INTO game_files(id, game_id, path, role, size)
+         VALUES (?1, ?2, ?3, 'primary', ?4)
+         ON CONFLICT(id) DO UPDATE SET size=excluded.size",
+        params![
+            format!("{}:primary", stable_id),
+            stable_id,
+            game.primary_file,
+            std::fs::metadata(&game.primary_file)
+                .map(|item| item.len() as i64)
+                .ok()
+        ],
+    )?;
+    Ok(stable_id)
+}
+
+pub fn save_watched_directory(connection: &Connection, path: &str) -> AppResult<()> {
+    connection.execute(
+        "INSERT INTO watched_directories(id, path, last_scanned_at)
+         VALUES (?1, ?2, CURRENT_TIMESTAMP)
+         ON CONFLICT(path) DO UPDATE SET last_scanned_at=CURRENT_TIMESTAMP",
+        params![uuid::Uuid::new_v4().to_string(), path],
     )?;
     Ok(())
 }
@@ -96,11 +129,15 @@ mod tests {
     #[test]
     fn migrations_are_idempotent() {
         let mut connection = Connection::open_in_memory().unwrap();
-        connection.pragma_update(None, "foreign_keys", "ON").unwrap();
+        connection
+            .pragma_update(None, "foreign_keys", "ON")
+            .unwrap();
         migrate(&mut connection).unwrap();
         migrate(&mut connection).unwrap();
         let count: i64 = connection
-            .query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| row.get(0))
+            .query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(count, MIGRATIONS.len() as i64);
     }

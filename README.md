@@ -4,9 +4,9 @@ RetroBox Desktop is a local Windows 10/11 x64 big-picture library for legally ow
 
 ## Current state
 
-The repository contains a working frontend shell, skippable onboarding, gamepad navigation primitives, library/emulator views, typed Tauri calls, SQLite migrations, library scanning, conservative platform detection, public-link parsing, filename/path/token safety, and launch-command adapters for seven emulators.
+The repository now builds as a native Windows application and includes a complete first RetroArch path: select and validate `retroarch.exe`, scan a watched folder, choose a libretro core DLL for a game, launch without shell interpolation, track the process and play session, capture a launch log, update play time, and restore application focus.
 
-The first commit is an honest foundation, not the entirety of the long-term product specification. Remote metadata clients, streamed/resumable production downloads, managed emulator installation, archive extraction, credential-vault integration, save snapshot UI, and real-emulator end-to-end verification remain follow-up work. The UI does not claim these are complete.
+Remote metadata clients, streamed/resumable production downloads, managed emulator installation, archive extraction, credential-vault integration, and save snapshot UI remain follow-up work. The UI does not claim these are complete.
 
 ## Requirements
 
@@ -27,7 +27,7 @@ pnpm test
 pnpm tauri dev
 ```
 
-The Vite-only preview (`pnpm dev`) uses clearly identified sample data and cannot launch a game.
+The Vite-only preview (`pnpm dev`) shows the production empty state and cannot launch a game. Demo data is available only with `VITE_DEMO_DATA=true`.
 
 ## Production build
 
@@ -43,7 +43,7 @@ The setup guide introduces the data directory, controller, emulator, BIOS, metad
 
 ## Import and scanning
 
-Rust scans explicitly selected watched folders without following symlinks. It recognizes supported extensions, uses magic bytes where available, treats CUE as the primary file for multi-track discs, and does not infer a platform from title words.
+Rust scans explicitly selected watched folders without following symlinks. It persists watched folders and stable game IDs, fills `game_files`, validates every CUE track, uses magic bytes where available, treats CUE as the primary file for multi-track discs, and does not infer a platform from title words.
 
 Link imports accept only HTTP/HTTPS and recognize direct links plus public Google Drive, Dropbox, and OneDrive link shapes. Private links, authentication bypasses, ROM sites, torrents, and BIOS downloads are intentionally unsupported.
 
@@ -53,7 +53,7 @@ The provider architecture targets ScreenScraper, SteamGridDB, IGDB, and an offli
 
 ## Emulators and BIOS
 
-Adapters exist for RetroArch, PCSX2, Dolphin, PPSSPP, DuckStation, RPCS3, and Cemu. Detection and argument construction are implemented without shell interpolation. Before launch, users must provide a real executable and any lawfully obtained BIOS/firmware required by that emulator.
+Adapters exist for RetroArch, PCSX2, Dolphin, PPSSPP, DuckStation, RPCS3, and Cemu. RetroArch has the first end-to-end configuration and launch flow. Detection and argument construction are implemented without shell interpolation. Before launch, users must provide a real executable, core, and any lawfully obtained BIOS/firmware required by that emulator.
 
 RetroBox never ships games, BIOS, firmware, saves, credentials, or downloaded emulator packages.
 
@@ -63,7 +63,7 @@ Mouse and keyboard work naturally. The controller hook supports D-pad/left stick
 
 ## Known limitations
 
-- Rust/Tauri builds require a locally installed Rust MSVC toolchain.
-- Real emulator launch/session persistence is intentionally blocked until an executable installation is configured.
+- Real RetroArch execution requires a user-installed RetroArch executable and compatible core DLL.
+- Standalone emulator configuration is available, but full per-emulator BIOS/save diagnostics still follow the RetroArch vertical slice.
 - Managed downloads, extraction, remote scraping, media cache, BIOS hash catalog, save snapshots, diagnostics ZIP, and autostart are specified but not complete.
 - The generated concept image is design documentation, not shipped UI content.

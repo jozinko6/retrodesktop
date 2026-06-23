@@ -50,3 +50,19 @@ pub struct LaunchCommand {
     pub args: Vec<String>,
     pub working_directory: Option<std::path::PathBuf>,
 }
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchResult {
+    pub session_id: String,
+    pub exit_code: Option<i32>,
+    pub duration_seconds: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedDownload {
+    pub provider: String,
+    pub url: String,
+    pub log_safe_url: String,
+}

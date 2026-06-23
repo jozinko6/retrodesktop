@@ -1,11 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { DetectionResult, EmulatorStatus, Game } from "../types";
+import { open } from "@tauri-apps/plugin-dialog";
+import type { DetectionResult, EmulatorStatus, Game, LaunchResult } from "../types";
 import { demoGames } from "../data/catalog";
 
 const inTauri = () => "__TAURI_INTERNALS__" in window;
 
 export async function listGames(): Promise<Game[]> {
-  return inTauri() ? invoke<Game[]>("list_games") : demoGames;
+  return inTauri() ? invoke<Game[]>("list_games") : import.meta.env.VITE_DEMO_DATA === "true" ? demoGames : [];
 }
 
 export async function scanDirectory(path: string): Promise<Game[]> {
@@ -28,7 +29,36 @@ export async function listEmulators(): Promise<EmulatorStatus[]> {
       ];
 }
 
-export async function launchGame(gameId: string): Promise<void> {
+export async function launchGame(gameId: string): Promise<LaunchResult> {
   if (!inTauri()) throw new Error("Spustenie hier je dostupné v desktopovej aplikácii po konfigurácii emulátora.");
-  await invoke("launch_game", { gameId });
+  return invoke<LaunchResult>("launch_game", { gameId });
+}
+
+export async function chooseDirectory(): Promise<string | null> {
+  if (!inTauri()) return null;
+  const result = await open({ directory: true, multiple: false, title: "Vyber priečinok s hrami" });
+  return typeof result === "string" ? result : null;
+}
+
+export async function chooseExecutable(emulatorId: string): Promise<EmulatorStatus | null> {
+  if (!inTauri()) return null;
+  const result = await open({
+    multiple: false,
+    title: "Vyber executable emulátora",
+    filters: [{ name: "Windows executable", extensions: ["exe"] }]
+  });
+  if (typeof result !== "string") return null;
+  return invoke<EmulatorStatus>("configure_emulator", { emulatorId, executable: result });
+}
+
+export async function chooseRetroArchCore(gameId: string): Promise<boolean> {
+  if (!inTauri()) return false;
+  const result = await open({
+    multiple: false,
+    title: "Vyber RetroArch core",
+    filters: [{ name: "Libretro core", extensions: ["dll"] }]
+  });
+  if (typeof result !== "string") return false;
+  await invoke("configure_retroarch_game", { gameId, corePath: result });
+  return true;
 }

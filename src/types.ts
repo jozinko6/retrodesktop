@@ -30,6 +30,12 @@ export interface EmulatorStatus {
   supportedSystems: string[];
 }
 
+export interface LaunchResult {
+  sessionId: string;
+  exitCode?: number;
+  durationSeconds: number;
+}
+
 export interface DetectionResult {
   systemId: SystemId | null;
   confidence: number;

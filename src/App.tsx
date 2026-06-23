@@ -1,31 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, Gamepad2, Grid2X2, Heart, Home, Library, Play, Search, Settings, SlidersHorizontal, UserRound, Wrench } from "lucide-react";
-import { demoGames } from "./data/catalog";
 import { useGamepadNavigation } from "./hooks/useGamepadNavigation";
-import { launchGame, listGames } from "./lib/tauri";
+import { chooseDirectory, chooseRetroArchCore, launchGame, listGames, scanDirectory } from "./lib/tauri";
 import type { Game } from "./types";
 import { EmulatorManager } from "./components/EmulatorManager";
 import { GameCard } from "./components/GameCard";
 import { IconButton } from "./components/IconButton";
 import { Onboarding } from "./components/Onboarding";
+import { EmptyLibrary } from "./components/EmptyLibrary";
 
 type Page = "home" | "library" | "systems" | "downloads" | "emulators" | "settings";
 
 export function App() {
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem("retrobox:onboarded") === "true");
   const [page, setPage] = useState<Page>("home");
-  const [games, setGames] = useState<Game[]>(demoGames);
-  const [selectedId, setSelectedId] = useState(demoGames[0].id);
+  const [games, setGames] = useState<Game[]>([]);
+  const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState<string>();
   useGamepadNavigation(onboarded);
 
-  useEffect(() => { void listGames().then((items) => items.length && setGames(items)); }, []);
+  useEffect(() => { void listGames().then((items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); }); }, []);
   const selected = useMemo(() => games.find((game) => game.id === selectedId) ?? games[0], [games, selectedId]);
 
   useEffect(() => {
     const handler = (event: Event) => {
       const action = (event as CustomEvent<string>).detail;
       const index = games.findIndex((game) => game.id === selectedId);
+      if (!games.length) return;
       if (action === "right" || action === "down") setSelectedId(games[(index + 1) % games.length].id);
       if (action === "left" || action === "up") setSelectedId(games[(index - 1 + games.length) % games.length].id);
       if (action === "accept") void play();
@@ -38,6 +39,30 @@ export function App() {
     if (!selected) return;
     try {
       await launchGame(selected.id);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function addFolder() {
+    const path = await chooseDirectory();
+    if (!path) return;
+    try {
+      const scanned = await scanDirectory(path);
+      const updated = await listGames();
+      setGames(updated);
+      setSelectedId(updated[0]?.id ?? "");
+      setMessage(`Scan dokončený: ${scanned.length} hier.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function configureCore() {
+    if (!selected) return;
+    try {
+      const configured = await chooseRetroArchCore(selected.id);
+      if (configured) setMessage("RetroArch core bol priradený k hre.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     }
@@ -67,7 +92,7 @@ export function App() {
           <button className="profile"><UserRound size={20} /><span>Rodina</span></button>
         </header>
 
-        {page === "emulators" ? <EmulatorManager /> : (
+        {page === "emulators" ? <EmulatorManager /> : games.length === 0 ? <EmptyLibrary onAddFolder={() => void addFolder()} /> : (
           <main>
             <section className="hero" style={{ "--hero-accent": selected?.accent ?? "#15d6ff" } as React.CSSProperties}>
               <div className="hero-art" aria-hidden="true"><span /><span /><span /></div>
@@ -78,7 +103,7 @@ export function App() {
                 <p className="description">{selected?.description}</p>
                 <div className="hero-actions">
                   <button className="primary" onClick={() => void play()}><Play size={21} fill="currentColor" /> Hrať</button>
-                  <button className="secondary"><SlidersHorizontal size={20} /> Nastaviť</button>
+                  <button className="secondary" onClick={() => void configureCore()}><SlidersHorizontal size={20} /> Vybrať core</button>
                 </div>
               </div>
             </section>

@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, FolderOpen, RefreshCw } from "lucide-react";
-import { listEmulators } from "../lib/tauri";
+import { chooseExecutable, listEmulators } from "../lib/tauri";
 import type { EmulatorStatus } from "../types";
 
 export function EmulatorManager() {
   const [items, setItems] = useState<EmulatorStatus[]>([]);
+  const [error, setError] = useState<string>();
   useEffect(() => { void listEmulators().then(setItems); }, []);
+  async function configure(id: string) {
+    try {
+      const configured = await chooseExecutable(id);
+      if (configured) setItems((current) => current.map((item) => item.id === id ? configured : item));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
+  }
   return (
     <section className="content-page">
       <header><p>Konfigurácia</p><h1>Správca emulátorov</h1><span>RetroBox spúšťa iba overené executable cesty, nikdy ľubovoľný shell príkaz.</span></header>
@@ -18,11 +27,12 @@ export function EmulatorManager() {
               {item.state === "ready" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
               {item.state === "not-installed" ? "Nenainštalované" : item.state}
             </div>
-            <button aria-label={`Vybrať ${item.displayName} executable`}><FolderOpen size={19} /> Zmeniť executable</button>
+            <button aria-label={`Vybrať ${item.displayName} executable`} onClick={() => void configure(item.id)}><FolderOpen size={19} /> Zmeniť executable</button>
             <button aria-label={`Obnoviť ${item.displayName}`}><RefreshCw size={19} /></button>
           </article>
         ))}
       </div>
+      {error ? <p className="inline-error" role="alert">{error}</p> : null}
     </section>
   );
 }

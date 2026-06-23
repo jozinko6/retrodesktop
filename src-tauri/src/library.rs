@@ -1,25 +1,64 @@
-use std::path::Path;
+use std::{fs, path::Path};
 use uuid::Uuid;
 use walkdir::WalkDir;
 
-use crate::{db, detection, domain::Game, error::{AppError, AppResult}};
+use crate::{
+    db, detection,
+    domain::Game,
+    error::{AppError, AppResult},
+};
 
 const SUPPORTED: &[&str] = &[
-    "nes","sfc","smc","gb","gbc","gba","n64","z64","v64","nds","md","gen","sms","gg",
-    "a26","a52","a78","lnx","cue","chd","iso","cso","gcz","rvz","wbfs","wad","pbp",
-    "zip","7z","rar","jsdos","adf","d64",
+    "nes", "sfc", "smc", "gb", "gbc", "gba", "n64", "z64", "v64", "nds", "md", "gen", "sms", "gg",
+    "a26", "a52", "a78", "lnx", "cue", "chd", "iso", "cso", "gcz", "rvz", "wbfs", "wad", "pbp",
+    "zip", "7z", "rar", "jsdos", "adf", "d64", "exe", "bat", "com", "bin",
 ];
 
 pub fn scan(connection: &rusqlite::Connection, root: &Path) -> AppResult<Vec<Game>> {
-    if !root.is_dir() { return Err(AppError::NotFound(root.display().to_string())); }
+    if !root.is_dir() {
+        return Err(AppError::NotFound(root.display().to_string()));
+    }
     let mut games = Vec::new();
-    for entry in WalkDir::new(root).follow_links(false).into_iter().filter_map(Result::ok) {
-        if !entry.file_type().is_file() { continue; }
-        let extension = entry.path().extension().and_then(|value| value.to_str()).unwrap_or("").to_ascii_lowercase();
-        if !SUPPORTED.contains(&extension.as_str()) || (extension == "bin" && entry.path().with_extension("cue").exists()) { continue; }
+    for entry in WalkDir::new(root)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(Result::ok)
+    {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let extension = entry
+            .path()
+            .extension()
+            .and_then(|value| value.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if !SUPPORTED.contains(&extension.as_str())
+            || (extension == "bin" && entry.path().with_extension("cue").exists())
+        {
+            continue;
+        }
+        if extension == "cue" {
+            let contents = fs::read_to_string(entry.path())?;
+            let parent = entry.path().parent().unwrap_or(root);
+            for referenced in detection::parse_cue(&contents) {
+                let track = crate::security::safe_child(parent, Path::new(&referenced))?;
+                if !track.is_file() {
+                    return Err(AppError::InvalidInput(format!(
+                        "CUE odkazuje na chýbajúci track: {}",
+                        track.display()
+                    )));
+                }
+            }
+        }
         let result = detection::detect(entry.path())?;
-        let title = entry.path().file_stem().and_then(|value| value.to_str()).unwrap_or("Neznáma hra").to_owned();
-        let game = Game {
+        let title = entry
+            .path()
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or("Neznáma hra")
+            .to_owned();
+        let mut game = Game {
             id: Uuid::new_v4().to_string(),
             title,
             system_id: result.system_id.unwrap_or_else(|| "unknown".into()),
@@ -33,8 +72,9 @@ pub fn scan(connection: &rusqlite::Connection, root: &Path) -> AppResult<Vec<Gam
             favorite: false,
             accent: "#15d6ff".into(),
         };
-        db::upsert_scanned_game(connection, &game)?;
+        game.id = db::upsert_scanned_game(connection, &game)?;
         games.push(game);
     }
+    db::save_watched_directory(connection, &root.display().to_string())?;
     Ok(games)
 }

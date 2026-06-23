@@ -1,0 +1,18 @@
+import { FolderPlus, Link, Plus } from "lucide-react";
+
+export function EmptyLibrary({ onAddFolder }: { onAddFolder: () => void }) {
+  return (
+    <main className="empty-library">
+      <div className="empty-symbol"><FolderPlus size={44} /></div>
+      <p>Knižnica</p>
+      <h1>Zatiaľ nemáš pridané žiadne hry.</h1>
+      <span>Vyber priečinok so svojimi vlastnými hernými zálohami. RetroBox ho bezpečne naskenuje a uloží ako sledovaný priečinok.</span>
+      <div className="empty-actions">
+        <button className="primary" onClick={onAddFolder}><FolderPlus size={20} /> Pridať priečinok</button>
+        <button className="secondary" disabled><Plus size={20} /> Importovať hru</button>
+        <button className="secondary" disabled><Link size={20} /> Pridať odkaz</button>
+      </div>
+      <small>Import jedného súboru a download z odkazu budú dostupné v ďalšej fáze.</small>
+    </main>
+  );
+}

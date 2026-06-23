@@ -6,7 +6,7 @@ Implemented adapters:
 
 | Adapter | Detection | Argument builder | Full real-emulator test |
 | --- | --- | --- | --- |
-| RetroArch | Yes | `-L`, core, content | Not run |
+| RetroArch | Yes + manual picker | `-L`, core, content | Fake-emulator process integration |
 | PCSX2 | Yes | fullscreen + image | Synthetic unit test |
 | Dolphin | Yes | batch + exec | Not run |
 | PPSSPP | Yes | fullscreen + content | Not run |
