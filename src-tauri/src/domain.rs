@@ -69,6 +69,17 @@ pub struct BiosImportResult {
     pub size: u64,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemotePlayStatus {
+    pub installed: bool,
+    pub running: bool,
+    pub executable: Option<String>,
+    pub local_ip: Option<String>,
+    pub web_ui_url: String,
+    pub port: u16,
+}
+
 #[derive(Debug, Clone)]
 pub struct LaunchCommand {
     pub executable: std::path::PathBuf,

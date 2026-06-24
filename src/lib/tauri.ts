@@ -1,6 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { BiosImportResult, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchResult, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
+import type { BiosImportResult, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchResult, RemotePlayStatus, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
 import { demoGames } from "../data/catalog";
 
 const inTauri = () => "__TAURI_INTERNALS__" in window;
@@ -82,6 +82,29 @@ export async function chooseBios(emulatorId: string): Promise<BiosImportResult |
 export async function openOfficialEmulatorPage(emulatorId: string): Promise<void> {
   if (!inTauri()) throw new Error("Oficiálnu stránku otvoríš v desktopovej aplikácii.");
   await invoke("open_official_emulator_page", { emulatorId });
+}
+
+export async function getRemotePlayStatus(): Promise<RemotePlayStatus> {
+  if (!inTauri()) {
+    return {
+      installed: false,
+      running: false,
+      localIp: "192.168.1.100",
+      webUiUrl: "https://localhost:47990",
+      port: 47990,
+    };
+  }
+  return invoke<RemotePlayStatus>("remote_play_status");
+}
+
+export async function startRemotePlayHost(): Promise<RemotePlayStatus> {
+  if (!inTauri()) throw new Error("Sunshine host sa dá spustiť iba v desktopovej aplikácii.");
+  return invoke<RemotePlayStatus>("start_remote_play_host");
+}
+
+export async function openRemotePlayTarget(target: "web-ui" | "sunshine-download" | "moonlight-download"): Promise<void> {
+  if (!inTauri()) return;
+  await invoke("open_remote_play_target", { target });
 }
 
 export async function launchGame(gameId: string): Promise<LaunchResult> {

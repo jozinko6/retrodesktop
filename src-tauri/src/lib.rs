@@ -8,6 +8,7 @@ mod error;
 mod library;
 mod managed_install;
 mod metadata;
+mod remote_play;
 mod runner;
 mod security;
 mod state;
@@ -17,7 +18,7 @@ use std::{fs, path::PathBuf};
 
 use domain::{
     BiosImportResult, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchCommand,
-    LaunchResult, ResolvedDownload, WindowsDiscoveryResult, WindowsGameCandidate,
+    LaunchResult, RemotePlayStatus, ResolvedDownload, WindowsDiscoveryResult, WindowsGameCandidate,
 };
 use error::{AppError, AppResult};
 use state::AppState;
@@ -310,6 +311,21 @@ fn open_official_emulator_page(emulator_id: String) -> AppResult<()> {
         .spawn()
         .map_err(AppError::Io)?;
     Ok(())
+}
+
+#[tauri::command]
+fn remote_play_status() -> RemotePlayStatus {
+    remote_play::status()
+}
+
+#[tauri::command]
+fn start_remote_play_host() -> AppResult<RemotePlayStatus> {
+    remote_play::start()
+}
+
+#[tauri::command]
+fn open_remote_play_target(target: String) -> AppResult<()> {
+    remote_play::open_target(&target)
 }
 
 #[tauri::command]
@@ -726,6 +742,9 @@ pub fn run() {
             install_managed_emulator,
             import_bios,
             open_official_emulator_page,
+            remote_play_status,
+            start_remote_play_host,
+            open_remote_play_target,
             configure_retroarch_game,
             resolve_download_url,
             safe_filename,

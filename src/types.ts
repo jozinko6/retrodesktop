@@ -51,6 +51,15 @@ export interface BiosImportResult {
   size: number;
 }
 
+export interface RemotePlayStatus {
+  installed: boolean;
+  running: boolean;
+  executable?: string;
+  localIp?: string;
+  webUiUrl: string;
+  port: number;
+}
+
 export interface LaunchResult {
   sessionId: string;
   exitCode?: number;

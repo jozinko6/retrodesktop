@@ -14,7 +14,10 @@ vi.mock("./lib/tauri", () => ({
   scanWindowsGames: vi.fn(),
   choosePortableScanRoot: vi.fn(),
   confirmWindowsGames: vi.fn(),
-  rejectWindowsGames: vi.fn()
+  rejectWindowsGames: vi.fn(),
+  getRemotePlayStatus: vi.fn().mockResolvedValue({ installed: false, running: false, webUiUrl: "https://localhost:47990", port: 47990 }),
+  startRemotePlayHost: vi.fn(),
+  openRemotePlayTarget: vi.fn()
 }));
 
 describe("App navigation", () => {
@@ -26,6 +29,8 @@ describe("App navigation", () => {
     expect(screen.getByRole("heading", { name: "Systémy" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Sťahovania" }));
     expect(screen.getByRole("heading", { name: "Sťahovania" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Remote hranie" }));
+    expect(screen.getByRole("heading", { name: "Remote hranie" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Nastavenia" }));
     expect(screen.getByRole("heading", { name: "Nastavenia" })).toBeInTheDocument();
   });

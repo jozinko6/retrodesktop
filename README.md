@@ -67,9 +67,16 @@ The Systems page lists every supported platform, including empty libraries. Open
 
 Mouse and keyboard work naturally. The controller hook supports D-pad/left stick, deadzone, edge detection, delayed repeat, and prevents held accept buttons from repeatedly launching. Console-mode fullscreen/autostart settings remain to be wired to native Windows integration.
 
+## Remote play
+
+The Remote Play page integrates the official Sunshine host with Moonlight clients. RetroBox detects a local Sunshine installation, can start its executable, shows the PC's LAN address, and opens the local pairing Web UI. If Sunshine is missing, the page opens its official latest release; Moonlight links point to the official client downloads.
+
+For the most reliable remote multiplayer setup, connect multiple Bluetooth controllers to one Moonlight phone, tablet, or TV and use a game that supports local split-screen or couch co-op. Separate client devices depend on the game's controller mapping and concurrent Sunshine sessions. RetroBox does not open Internet-facing ports; use a trusted VPN for play outside the local network.
+
 ## Known limitations
 
 - Real RetroArch execution still requires a compatible libretro core DLL for each configured game.
 - Managed emulator downloads are not resumable yet and show an indeterminate progress state while downloading and extracting.
+- Sunshine installation and firewall approval remain an explicit user-controlled step because the official Windows installer may require administrator access.
 - Full per-emulator BIOS placement diagnostics, remote scraping, media cache, save snapshots, diagnostics ZIP, and autostart remain follow-up work.
 - The generated concept image is design documentation, not shipped UI content.

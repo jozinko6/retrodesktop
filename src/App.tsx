@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Gamepad2, Grid2X2, Heart, Home, Library, MonitorPlay, Play, Search, Settings, SlidersHorizontal, UserRound, Wrench } from "lucide-react";
+import { Cast, Download, Gamepad2, Grid2X2, Heart, Home, Library, MonitorPlay, Play, Search, Settings, SlidersHorizontal, UserRound, Wrench } from "lucide-react";
 import { useGamepadNavigation } from "./hooks/useGamepadNavigation";
 import { chooseDirectory, chooseGameFile, chooseRetroArchCore, importGameFile, launchGame, listGames, localAssetUrl, refreshGameMetadata, scanDirectory, scanDirectoryForSystem } from "./lib/tauri";
 import type { Game, SystemId } from "./types";
@@ -12,11 +12,12 @@ import { IconButton } from "./components/IconButton";
 import { LibraryPage } from "./components/LibraryPage";
 import { Onboarding } from "./components/Onboarding";
 import { SettingsPage } from "./components/SettingsPage";
+import { RemotePlayPage } from "./components/RemotePlayPage";
 import { SystemsPage } from "./components/SystemsPage";
 import { SystemLibraryPage } from "./components/SystemLibraryPage";
 import { WindowsDiscovery } from "./components/WindowsDiscovery";
 
-type Page = "home" | "library" | "systems" | "system-library" | "windows" | "downloads" | "emulators" | "settings";
+type Page = "home" | "library" | "systems" | "system-library" | "windows" | "remote-play" | "downloads" | "emulators" | "settings";
 
 export function App() {
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem("retrobox:onboarded") === "true");
@@ -193,6 +194,8 @@ export function App() {
         return <SystemLibraryPage systemId={selectedSystem} games={games} selectedId={selectedId} onSelect={setSelectedId} onBack={() => setPage("systems")} onAddFile={() => addGameFile(selectedSystem)} onAddFolder={() => addSystemFolder(selectedSystem)} onRefreshMetadata={refreshMetadata} onPlay={(gameId) => play(gameId, true)} />;
       case "windows":
         return <WindowsDiscovery onImported={(items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); setPage("library"); }} />;
+      case "remote-play":
+        return <RemotePlayPage />;
       case "downloads":
         return <DownloadsPage />;
       case "emulators":
@@ -215,6 +218,7 @@ export function App() {
           <IconButton label="Všetky hry" active={page === "library"} onClick={() => setPage("library")}><Library /></IconButton>
           <IconButton label="Systémy" active={page === "systems" || page === "system-library"} onClick={() => setPage("systems")}><Grid2X2 /></IconButton>
           <IconButton label="Windows hry" active={page === "windows"} onClick={() => setPage("windows")}><MonitorPlay /></IconButton>
+          <IconButton label="Remote hranie" active={page === "remote-play"} onClick={() => setPage("remote-play")}><Cast /></IconButton>
           <IconButton label="Sťahovania" active={page === "downloads"} onClick={() => setPage("downloads")}><Download /></IconButton>
           <IconButton label="Emulátory" active={page === "emulators"} onClick={() => setPage("emulators")}><Wrench /></IconButton>
         </nav>
