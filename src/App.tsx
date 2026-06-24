@@ -48,12 +48,14 @@ export function App() {
     return () => window.removeEventListener("retrobox-gamepad", handler);
   });
 
-  async function play(gameId = selected?.id) {
+  async function play(gameId = selected?.id, propagateError = false) {
     if (!gameId) return;
     try {
       await launchGame(gameId);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
+      const reason = error instanceof Error ? error : new Error(String(error));
+      setMessage(reason.message);
+      if (propagateError) throw reason;
     }
   }
 
@@ -175,7 +177,7 @@ export function App() {
       case "systems":
         return <SystemsPage games={games} onOpenSystem={(systemId) => { setSelectedSystem(systemId); setSelectedId(games.find((game) => game.systemId === systemId)?.id ?? ""); setPage("system-library"); }} />;
       case "system-library":
-        return <SystemLibraryPage systemId={selectedSystem} games={games} selectedId={selectedId} onSelect={setSelectedId} onBack={() => setPage("systems")} onAddFile={() => addGameFile(selectedSystem)} onAddFolder={() => addSystemFolder(selectedSystem)} onRefreshMetadata={refreshMetadata} onPlay={play} />;
+        return <SystemLibraryPage systemId={selectedSystem} games={games} selectedId={selectedId} onSelect={setSelectedId} onBack={() => setPage("systems")} onAddFile={() => addGameFile(selectedSystem)} onAddFolder={() => addSystemFolder(selectedSystem)} onRefreshMetadata={refreshMetadata} onPlay={(gameId) => play(gameId, true)} />;
       case "windows":
         return <WindowsDiscovery onImported={(items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); setPage("library"); }} />;
       case "downloads":

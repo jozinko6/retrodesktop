@@ -224,6 +224,18 @@ pub fn validate_executable(id: &str, path: &Path) -> AppResult<PathBuf> {
     Ok(canonical)
 }
 
+pub fn preferred_for_system(system_id: &str) -> &'static str {
+    match system_id {
+        "ps1" => "duckstation",
+        "ps2" => "pcsx2",
+        "ps3" => "rpcs3",
+        "psp" => "ppsspp",
+        "gamecube" | "wii" => "dolphin",
+        "wiiu" => "cemu",
+        _ => "retroarch",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -246,5 +258,13 @@ mod tests {
             .unwrap();
         assert_eq!(command.args, vec!["-fullscreen", game.to_str().unwrap()]);
         assert!(!command.args.iter().any(|arg| arg.contains("cmd.exe")));
+    }
+
+    #[test]
+    fn maps_systems_to_preferred_adapters() {
+        assert_eq!(preferred_for_system("ps1"), "duckstation");
+        assert_eq!(preferred_for_system("ps2"), "pcsx2");
+        assert_eq!(preferred_for_system("gamecube"), "dolphin");
+        assert_eq!(preferred_for_system("snes"), "retroarch");
     }
 }

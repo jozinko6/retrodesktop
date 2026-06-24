@@ -26,8 +26,9 @@ export function SystemLibraryPage({
   onRefreshMetadata: (gameId: string) => Promise<void>;
   onPlay: (gameId: string) => Promise<void>;
 }) {
-  const [busy, setBusy] = useState<"file" | "folder" | "metadata">();
+  const [busy, setBusy] = useState<"file" | "folder" | "metadata" | "launch">();
   const [openGameId, setOpenGameId] = useState<string>();
+  const [launchError, setLaunchError] = useState<string>();
   const filtered = useMemo(
     () => games.filter((game) => game.systemId === systemId),
     [games, systemId],
@@ -45,7 +46,7 @@ export function SystemLibraryPage({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [openGameId]);
 
-  async function run(kind: "file" | "folder" | "metadata", action: () => Promise<void>) {
+  async function run(kind: "file" | "folder" | "metadata" | "launch", action: () => Promise<void>) {
     setBusy(kind);
     try {
       await action();
@@ -126,6 +127,7 @@ export function SystemLibraryPage({
               selected={game.id === selected?.id}
               onSelect={() => {
                 onSelect(game.id);
+                setLaunchError(undefined);
                 setOpenGameId(game.id);
               }}
             />
@@ -182,9 +184,20 @@ export function SystemLibraryPage({
               <div className="game-detail-actions">
                 <button
                   className="primary"
-                  onClick={() => void onPlay(openGame.id)}
+                  disabled={busy === "launch"}
+                  onClick={() => {
+                    setLaunchError(undefined);
+                    void run("launch", () => onPlay(openGame.id)).catch((reason) => {
+                      setLaunchError(reason instanceof Error ? reason.message : String(reason));
+                    });
+                  }}
                 >
-                  <Play size={20} fill="currentColor" /> Spustiť hru
+                  {busy === "launch" ? (
+                    <LoaderCircle className="spin" size={20} />
+                  ) : (
+                    <Play size={20} fill="currentColor" />
+                  )}
+                  {busy === "launch" ? "Spúšťam…" : "Spustiť hru"}
                 </button>
                 <button
                   className="secondary"
@@ -201,6 +214,9 @@ export function SystemLibraryPage({
                   Obnoviť metadata
                 </button>
               </div>
+              {launchError ? (
+                <p className="game-launch-error" role="alert">{launchError}</p>
+              ) : null}
             </div>
           </section>
         </div>

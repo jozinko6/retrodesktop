@@ -609,16 +609,26 @@ fn launch_game(
     }
 
     let mut statement = connection.prepare(
-        "SELECT g.primary_file, g.emulator_id, c.library_filename_windows
+        "SELECT g.primary_file, g.system_id, g.emulator_id, c.library_filename_windows
          FROM games g LEFT JOIN retroarch_cores c ON c.id=g.core_id WHERE g.id=?1",
     )?;
-    let (file, emulator, core): (String, Option<String>, Option<String>) = statement
+    let (file, system_id, configured_emulator, core): (
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+    ) = statement
         .query_row([&game_id], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
         })
         .map_err(|_| AppError::NotFound(game_id.clone()))?;
-    let emulator =
-        emulator.ok_or_else(|| AppError::InvalidInput("Najprv vyberte emulátor.".into()))?;
+    let emulator = configured_emulator
+        .unwrap_or_else(|| emulators::preferred_for_system(&system_id).to_owned());
+    connection.execute(
+        "UPDATE games SET emulator_id=?1, updated_at=CURRENT_TIMESTAMP
+         WHERE id=?2 AND emulator_id IS NULL",
+        rusqlite::params![emulator, game_id],
+    )?;
     let executable: String = connection
         .query_row(
             "SELECT executable FROM emulator_installations
@@ -627,12 +637,16 @@ fn launch_game(
             |row| row.get(0),
         )
         .map_err(|_| {
-            AppError::InvalidInput("Najprv nakonfigurujte executable emulátora.".into())
+            AppError::InvalidInput(format!(
+                "Pre systém {system_id} je potrebný emulátor {emulator}. Nainštaluj alebo nastav ho v Správcovi emulátorov."
+            ))
         })?;
+    let launch_file =
+        library::prepare_launch_file(&game_id, &PathBuf::from(file), &system_id, &app_data_dir())?;
     let adapter = emulators::adapter(&emulator)?;
     let command = adapter.build_launch_command(
         &PathBuf::from(executable),
-        &PathBuf::from(file),
+        &launch_file,
         core.as_deref().map(std::path::Path::new),
     )?;
     execute_launch(&connection, &game_id, &emulator, command, &app)

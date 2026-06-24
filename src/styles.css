@@ -106,6 +106,7 @@ main { padding-bottom: 48px; }
 .game-detail-copy h2 { margin: 8px 0 18px; font-size: clamp(38px, 5vw, 64px); line-height: .98; letter-spacing: -.05em; }
 .game-detail-copy > p:not(:first-child) { color: #aab7ca; line-height: 1.7; }
 .game-detail-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.game-launch-error { margin-top: 18px; padding: 12px 14px; border: 1px solid rgba(255,143,143,.35); border-radius: 10px; color: #ffaaaa !important; background: rgba(255,95,95,.08); }
 .hero-art.with-cover { display: grid; place-items: center; transform: perspective(900px) rotateY(-8deg); }
 .hero-art.with-cover > img { position: relative; z-index: 1; width: min(360px, 70%); max-height: 86%; object-fit: cover; border-radius: 18px; box-shadow: 0 32px 90px rgba(0,0,0,.68); }
 .hero-art.with-cover span { display: none; }
