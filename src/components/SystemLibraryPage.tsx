@@ -1,6 +1,7 @@
-import { ArrowLeft, FilePlus2, FolderPlus, LoaderCircle } from "lucide-react";
+import { ArrowLeft, FilePlus2, FolderPlus, LoaderCircle, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { systemName } from "../data/systems";
+import { localAssetUrl } from "../lib/tauri";
 import type { Game, SystemId } from "../types";
 import { GameCard } from "./GameCard";
 
@@ -12,6 +13,7 @@ export function SystemLibraryPage({
   onBack,
   onAddFile,
   onAddFolder,
+  onRefreshMetadata,
 }: {
   systemId: SystemId;
   games: Game[];
@@ -20,8 +22,9 @@ export function SystemLibraryPage({
   onBack: () => void;
   onAddFile: () => Promise<void>;
   onAddFolder: () => Promise<void>;
+  onRefreshMetadata: (gameId: string) => Promise<void>;
 }) {
-  const [busy, setBusy] = useState<"file" | "folder">();
+  const [busy, setBusy] = useState<"file" | "folder" | "metadata">();
   const filtered = useMemo(
     () => games.filter((game) => game.systemId === systemId),
     [games, systemId],
@@ -29,7 +32,7 @@ export function SystemLibraryPage({
   const selected =
     filtered.find((game) => game.id === selectedId) ?? filtered[0];
 
-  async function run(kind: "file" | "folder", action: () => Promise<void>) {
+  async function run(kind: "file" | "folder" | "metadata", action: () => Promise<void>) {
     setBusy(kind);
     try {
       await action();
@@ -70,6 +73,13 @@ export function SystemLibraryPage({
       </header>
       {selected ? (
         <section className="system-game-detail">
+          {selected.coverPath ? (
+            <img
+              className="system-detail-cover"
+              src={localAssetUrl(selected.coverPath)}
+              alt={`Obal hry ${selected.title}`}
+            />
+          ) : null}
           <div>
             <p>Vybraná hra</p>
             <h2>{selected.title}</h2>
@@ -83,6 +93,14 @@ export function SystemLibraryPage({
             <strong>Krátky prehľad</strong>
             <p>{selected.shortReview || "Pre túto hru zatiaľ nie je dostupný dôveryhodný prehľad."}</p>
             {selected.metadataSource ? <small>Zdroj: {selected.metadataSource}</small> : null}
+            <button
+              className="metadata-refresh"
+              disabled={Boolean(busy)}
+              onClick={() => void run("metadata", () => onRefreshMetadata(selected.id))}
+            >
+              {busy === "metadata" ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />}
+              Obnoviť metadata a obrázok
+            </button>
           </aside>
         </section>
       ) : null}

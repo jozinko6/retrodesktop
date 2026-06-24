@@ -61,7 +61,7 @@ Adapters exist for RetroArch, PCSX2, Dolphin, PPSSPP, DuckStation, RPCS3, and Ce
 
 ## System libraries and metadata
 
-The Systems page lists every supported platform, including empty libraries. Opening a system allows importing one local game file or scanning a folder while explicitly assigning that platform. New imports normalize common dump and disc tags and attempt a strict title match through the public MediaWiki API. Accepted matches store the canonical title, introductory description, release year when available, a short neutral overview, and the source URL. If the title match is uncertain or the service is unavailable, the legal local import still succeeds and RetroBox keeps the filename-derived title without inventing metadata.
+The Systems page lists every supported platform, including empty libraries. Opening a system allows importing one local game file or scanning a folder while explicitly assigning that platform. New imports normalize common dump and disc tags and attempt a strict title match through the public MediaWiki API. Accepted matches store the canonical title, introductory description, release year when available, a short neutral overview, source URL, and an available page image. Media is cached under `app-data/media/{systemId}/{gameId}` with HTTPS, MIME and 10 MB limits. Existing games can request a metadata refresh from their system detail. If the title match is uncertain, an image is unsuitable, rate limiting occurs, or the service is unavailable, the legal local import still succeeds and RetroBox keeps the filename-derived title without inventing metadata.
 
 ## Controls and fullscreen
 

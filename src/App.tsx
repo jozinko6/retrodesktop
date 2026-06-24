@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, Gamepad2, Grid2X2, Heart, Home, Library, MonitorPlay, Play, Search, Settings, SlidersHorizontal, UserRound, Wrench } from "lucide-react";
 import { useGamepadNavigation } from "./hooks/useGamepadNavigation";
-import { chooseDirectory, chooseGameFile, chooseRetroArchCore, importGameFile, launchGame, listGames, scanDirectory, scanDirectoryForSystem } from "./lib/tauri";
+import { chooseDirectory, chooseGameFile, chooseRetroArchCore, importGameFile, launchGame, listGames, localAssetUrl, refreshGameMetadata, scanDirectory, scanDirectoryForSystem } from "./lib/tauri";
 import type { Game, SystemId } from "./types";
 import { DownloadsPage } from "./components/DownloadsPage";
 import { EmulatorManager } from "./components/EmulatorManager";
@@ -111,6 +111,19 @@ export function App() {
     }
   }
 
+  async function refreshMetadata(gameId: string) {
+    try {
+      const updated = await refreshGameMetadata(gameId);
+      setGames(updated);
+      const game = updated.find((item) => item.id === gameId);
+      setMessage(game?.metadataSource
+        ? `Metadata hry ${game.title} boli obnovené.`
+        : "Pre túto hru sa nenašla dostatočne presná zhoda.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
   function restartOnboarding() {
     localStorage.removeItem("retrobox:onboarded");
     setOnboarded(false);
@@ -118,12 +131,15 @@ export function App() {
 
   function renderHome() {
     if (!games.length) {
-      return <EmptyLibrary onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} />;
+      return <EmptyLibrary onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} onImportGame={() => setPage("systems")} />;
     }
     return (
       <main>
         <section className="hero" style={{ "--hero-accent": selected?.accent ?? "#15d6ff" } as React.CSSProperties}>
-          <div className="hero-art" aria-hidden="true"><span /><span /><span /></div>
+          <div className={`hero-art ${selected?.coverPath ? "with-cover" : ""}`} aria-hidden="true">
+            {selected?.coverPath ? <img src={localAssetUrl(selected.coverPath)} alt="" /> : null}
+            <span /><span /><span />
+          </div>
           <div className="hero-copy">
             <p>Pokračovať v hraní</p>
             <h1>{selected?.title}</h1>
@@ -159,7 +175,7 @@ export function App() {
       case "systems":
         return <SystemsPage games={games} onOpenSystem={(systemId) => { setSelectedSystem(systemId); setSelectedId(games.find((game) => game.systemId === systemId)?.id ?? ""); setPage("system-library"); }} />;
       case "system-library":
-        return <SystemLibraryPage systemId={selectedSystem} games={games} selectedId={selectedId} onSelect={setSelectedId} onBack={() => setPage("systems")} onAddFile={() => addGameFile(selectedSystem)} onAddFolder={() => addSystemFolder(selectedSystem)} />;
+        return <SystemLibraryPage systemId={selectedSystem} games={games} selectedId={selectedId} onSelect={setSelectedId} onBack={() => setPage("systems")} onAddFile={() => addGameFile(selectedSystem)} onAddFolder={() => addSystemFolder(selectedSystem)} onRefreshMetadata={refreshMetadata} />;
       case "windows":
         return <WindowsDiscovery onImported={(items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); setPage("library"); }} />;
       case "downloads":

@@ -87,6 +87,7 @@ pub fn import_file(
         accent: "#15d6ff".into(),
         short_review: None,
         metadata_source: None,
+        cover_path: None,
     };
     game.id = db::upsert_scanned_game(connection, &game)?;
     Ok(game)

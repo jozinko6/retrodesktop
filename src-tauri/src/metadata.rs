@@ -1,4 +1,10 @@
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io::{BufWriter, Read, Write},
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use regex::Regex;
 use reqwest::{blocking::Client, redirect::Policy};
@@ -13,6 +19,7 @@ pub struct GameMetadata {
     pub short_review: String,
     pub release_year: Option<i32>,
     pub source: String,
+    pub cover_url: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -44,6 +51,12 @@ struct PageQuery {
 struct WikiPage {
     title: String,
     extract: Option<String>,
+    thumbnail: Option<WikiImage>,
+}
+
+#[derive(Deserialize)]
+struct WikiImage {
+    source: String,
 }
 
 pub fn fetch(title: &str, system_name: &str) -> AppResult<Option<GameMetadata>> {
@@ -88,10 +101,11 @@ pub fn fetch(title: &str, system_name: &str) -> AppResult<Option<GameMetadata>> 
         .query(&[
             ("action", "query"),
             ("format", "json"),
-            ("prop", "extracts"),
+            ("prop", "extracts|pageimages"),
             ("redirects", "1"),
             ("exintro", "1"),
             ("explaintext", "1"),
+            ("pithumbsize", "720"),
             ("titles", hit.title.as_str()),
         ])
         .send()
@@ -148,7 +162,85 @@ pub fn fetch(title: &str, system_name: &str) -> AppResult<Option<GameMetadata>> 
         short_review,
         release_year,
         source: source.to_string(),
+        cover_url: page.thumbnail.map(|image| image.source),
     }))
+}
+
+pub fn download_cover(url: &str, destination: &Path) -> AppResult<Option<PathBuf>> {
+    let parsed =
+        url::Url::parse(url).map_err(|_| AppError::InvalidInput("Neplatná URL obrázka.".into()))?;
+    if parsed.scheme() != "https" {
+        return Err(AppError::Forbidden(
+            "Obrázky metadát sa sťahujú iba cez HTTPS.".into(),
+        ));
+    }
+    let client = Client::builder()
+        .user_agent("RetroBox-Desktop/0.1 (local game library media cache)")
+        .redirect(Policy::limited(3))
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(http_error)?;
+    let mut response = client
+        .get(parsed)
+        .send()
+        .map_err(http_error)?
+        .error_for_status()
+        .map_err(http_error)?;
+    let mime = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.split(';').next())
+        .unwrap_or("");
+    let Some(extension) = image_extension(mime) else {
+        return Ok(None);
+    };
+    const MAX_COVER_BYTES: u64 = 10 * 1024 * 1024;
+    if response
+        .content_length()
+        .is_some_and(|length| length > MAX_COVER_BYTES)
+    {
+        return Err(AppError::Forbidden(
+            "Obrázok prekračuje limit 10 MB.".into(),
+        ));
+    }
+    fs::create_dir_all(destination)?;
+    let final_path = destination.join(format!("cover.{extension}"));
+    let part_path = destination.join(format!("cover.{extension}.part"));
+    let mut writer = BufWriter::new(File::create(&part_path)?);
+    let mut total = 0_u64;
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = response.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        total += read as u64;
+        if total > MAX_COVER_BYTES {
+            let _ = fs::remove_file(&part_path);
+            return Err(AppError::Forbidden(
+                "Obrázok prekračuje limit 10 MB.".into(),
+            ));
+        }
+        writer.write_all(&buffer[..read])?;
+    }
+    writer.flush()?;
+    drop(writer);
+    if final_path.exists() {
+        fs::remove_file(&final_path)?;
+    }
+    fs::rename(&part_path, &final_path)?;
+    Ok(Some(final_path))
+}
+
+fn image_extension(mime: &str) -> Option<&'static str> {
+    match mime {
+        "image/jpeg" => Some("jpg"),
+        "image/png" => Some("png"),
+        "image/webp" => Some("webp"),
+        _ => None,
+    }
 }
 
 pub fn normalize_title(input: &str) -> String {
@@ -199,5 +291,14 @@ mod tests {
             "Metal Gear Solid"
         );
         assert_eq!(normalize_title("Super_Mario_World"), "Super Mario World");
+    }
+
+    #[test]
+    fn accepts_only_web_safe_cover_formats() {
+        assert_eq!(image_extension("image/jpeg"), Some("jpg"));
+        assert_eq!(image_extension("image/png"), Some("png"));
+        assert_eq!(image_extension("image/webp"), Some("webp"));
+        assert_eq!(image_extension("image/svg+xml"), None);
+        assert_eq!(image_extension("text/html"), None);
     }
 }

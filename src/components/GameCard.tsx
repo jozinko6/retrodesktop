@@ -1,10 +1,13 @@
 import { Heart } from "lucide-react";
+import { localAssetUrl } from "../lib/tauri";
 import type { Game } from "../types";
 
 export function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean; onSelect: () => void }) {
+  const coverUrl = localAssetUrl(game.coverPath);
   return (
     <button className={`game-card ${selected ? "selected" : ""}`} onClick={onSelect} style={{ "--game-accent": game.accent } as React.CSSProperties}>
       <span className="cover-art">
+        {coverUrl ? <img src={coverUrl} alt="" /> : null}
         <span className="cover-orbit" />
         <strong>{game.title}</strong>
         <small>{game.systemId.toUpperCase()}</small>

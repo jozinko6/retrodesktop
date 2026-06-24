@@ -118,15 +118,48 @@ fn enrich_game(
          release_year=COALESCE(?4, release_year), metadata_source=?5,
          updated_at=CURRENT_TIMESTAMP WHERE id=?6",
         rusqlite::params![
-            metadata.title,
-            metadata.description,
-            metadata.short_review,
+            &metadata.title,
+            &metadata.description,
+            &metadata.short_review,
             metadata.release_year,
-            metadata.source,
+            &metadata.source,
             game_id
         ],
     )?;
+    if let Some(cover_url) = metadata.cover_url {
+        let media_directory = app_data_dir().join("media").join(system_id).join(game_id);
+        if let Some(cover_path) = metadata::download_cover(&cover_url, &media_directory)? {
+            connection.execute(
+                "DELETE FROM game_assets WHERE game_id=?1 AND kind='cover'",
+                [game_id],
+            )?;
+            connection.execute(
+                "INSERT INTO game_assets(id, game_id, kind, relative_path, source)
+                 VALUES (?1, ?2, 'cover', ?3, ?4)",
+                rusqlite::params![
+                    uuid::Uuid::new_v4().to_string(),
+                    game_id,
+                    cover_path.display().to_string(),
+                    &metadata.source
+                ],
+            )?;
+        }
+    }
     Ok(())
+}
+
+#[tauri::command]
+fn refresh_game_metadata(game_id: String, state: State<'_, AppState>) -> AppResult<Vec<Game>> {
+    let connection = db::open(&state.database_path)?;
+    let (title, system_id) = connection
+        .query_row(
+            "SELECT title, system_id FROM games WHERE id=?1",
+            [&game_id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .map_err(|_| AppError::NotFound(game_id.clone()))?;
+    enrich_game(&connection, &game_id, &title, &system_id)?;
+    db::games(&connection)
 }
 
 #[tauri::command]
@@ -672,6 +705,7 @@ pub fn run() {
             scan_directory,
             import_game_file,
             scan_directory_for_system,
+            refresh_game_metadata,
             detect_platform,
             list_emulators,
             configure_emulator,

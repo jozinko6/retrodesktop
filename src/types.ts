@@ -21,6 +21,7 @@ export interface Game {
   accent: string;
   shortReview?: string;
   metadataSource?: string;
+  coverPath?: string;
 }
 
 export interface EmulatorStatus {

@@ -1,6 +1,6 @@
 import { FolderPlus, Link, MonitorPlay, Plus } from "lucide-react";
 
-export function EmptyLibrary({ onAddFolder, onWindowsScan }: { onAddFolder: () => void; onWindowsScan: () => void }) {
+export function EmptyLibrary({ onAddFolder, onWindowsScan, onImportGame }: { onAddFolder: () => void; onWindowsScan: () => void; onImportGame: () => void }) {
   return (
     <main className="empty-library">
       <div className="empty-symbol"><FolderPlus size={44} /></div>
@@ -10,10 +10,10 @@ export function EmptyLibrary({ onAddFolder, onWindowsScan }: { onAddFolder: () =
       <div className="empty-actions">
         <button className="primary" onClick={onAddFolder}><FolderPlus size={20} /> Pridať priečinok</button>
         <button className="secondary" onClick={onWindowsScan}><MonitorPlay size={20} /> Skenovať Windows hry</button>
-        <button className="secondary" disabled><Plus size={20} /> Importovať hru</button>
+        <button className="secondary" onClick={onImportGame}><Plus size={20} /> Importovať hru</button>
         <button className="secondary" disabled><Link size={20} /> Pridať odkaz</button>
       </div>
-      <small>Import jedného súboru a download z odkazu budú dostupné v ďalšej fáze.</small>
+      <small>Pri importe jedného súboru najprv vyberieš jeho systém. Download z odkazu bude dostupný v ďalšej fáze.</small>
     </main>
   );
 }

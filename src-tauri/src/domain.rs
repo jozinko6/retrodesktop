@@ -17,6 +17,7 @@ pub struct Game {
     pub accent: String,
     pub short_review: Option<String>,
     pub metadata_source: Option<String>,
+    pub cover_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

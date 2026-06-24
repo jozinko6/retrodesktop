@@ -68,7 +68,9 @@ pub fn games(connection: &Connection) -> AppResult<Vec<Game>> {
     let mut statement = connection.prepare(
         "SELECT id, title, system_id, primary_file, COALESCE(description, ''),
          release_year, developer, genre, total_play_time_seconds, last_played_at,
-         favorite, COALESCE(accent, '#15d6ff'), short_review, metadata_source
+         favorite, COALESCE(accent, '#15d6ff'), short_review, metadata_source,
+         (SELECT relative_path FROM game_assets
+          WHERE game_id=games.id AND kind='cover' LIMIT 1)
          FROM games ORDER BY sort_title",
     )?;
     let rows = statement.query_map([], |row| {
@@ -87,6 +89,7 @@ pub fn games(connection: &Connection) -> AppResult<Vec<Game>> {
             accent: row.get(11)?,
             short_review: row.get(12)?,
             metadata_source: row.get(13)?,
+            cover_path: row.get(14)?,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)

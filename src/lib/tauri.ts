@@ -1,9 +1,12 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { BiosImportResult, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchResult, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
 import { demoGames } from "../data/catalog";
 
 const inTauri = () => "__TAURI_INTERNALS__" in window;
+
+export const localAssetUrl = (path?: string) =>
+  path && inTauri() ? convertFileSrc(path) : undefined;
 
 export async function listGames(): Promise<Game[]> {
   return inTauri() ? invoke<Game[]>("list_games") : import.meta.env.VITE_DEMO_DATA === "true" ? demoGames : [];
@@ -34,6 +37,11 @@ export async function importGameFile(path: string, systemId: string): Promise<Ga
 export async function scanDirectoryForSystem(path: string, systemId: string): Promise<Game[]> {
   if (!inTauri()) return demoGames;
   return invoke<Game[]>("scan_directory_for_system", { path, systemId });
+}
+
+export async function refreshGameMetadata(gameId: string): Promise<Game[]> {
+  if (!inTauri()) return demoGames;
+  return invoke<Game[]>("refresh_game_metadata", { gameId });
 }
 
 export async function detectPlatform(path: string): Promise<DetectionResult> {
