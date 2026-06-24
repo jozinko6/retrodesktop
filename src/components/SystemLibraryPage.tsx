@@ -1,5 +1,5 @@
-import { ArrowLeft, FilePlus2, FolderPlus, LoaderCircle, RefreshCw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowLeft, FilePlus2, FolderPlus, LoaderCircle, Play, RefreshCw, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { systemName } from "../data/systems";
 import { localAssetUrl } from "../lib/tauri";
 import type { Game, SystemId } from "../types";
@@ -14,6 +14,7 @@ export function SystemLibraryPage({
   onAddFile,
   onAddFolder,
   onRefreshMetadata,
+  onPlay,
 }: {
   systemId: SystemId;
   games: Game[];
@@ -23,14 +24,26 @@ export function SystemLibraryPage({
   onAddFile: () => Promise<void>;
   onAddFolder: () => Promise<void>;
   onRefreshMetadata: (gameId: string) => Promise<void>;
+  onPlay: (gameId: string) => Promise<void>;
 }) {
   const [busy, setBusy] = useState<"file" | "folder" | "metadata">();
+  const [openGameId, setOpenGameId] = useState<string>();
   const filtered = useMemo(
     () => games.filter((game) => game.systemId === systemId),
     [games, systemId],
   );
   const selected =
     filtered.find((game) => game.id === selectedId) ?? filtered[0];
+  const openGame = filtered.find((game) => game.id === openGameId);
+
+  useEffect(() => {
+    if (!openGameId) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenGameId(undefined);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [openGameId]);
 
   async function run(kind: "file" | "folder" | "metadata", action: () => Promise<void>) {
     setBusy(kind);
@@ -111,7 +124,10 @@ export function SystemLibraryPage({
               key={game.id}
               game={game}
               selected={game.id === selected?.id}
-              onSelect={() => onSelect(game.id)}
+              onSelect={() => {
+                onSelect(game.id);
+                setOpenGameId(game.id);
+              }}
             />
           ))}
         </div>
@@ -122,6 +138,73 @@ export function SystemLibraryPage({
           <p>Nahraj jeden herný súbor alebo pridaj celý priečinok.</p>
         </div>
       )}
+      {openGame ? (
+        <div
+          className="game-detail-backdrop"
+          role="presentation"
+          onClick={() => setOpenGameId(undefined)}
+        >
+          <section
+            className="game-detail-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="game-detail-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              className="game-detail-close"
+              aria-label="Zavrieť detail hry"
+              onClick={() => setOpenGameId(undefined)}
+            >
+              <X />
+            </button>
+            <div
+              className="game-detail-art"
+              style={{ "--game-accent": openGame.accent } as React.CSSProperties}
+            >
+              {openGame.coverPath ? (
+                <img src={localAssetUrl(openGame.coverPath)} alt="" />
+              ) : (
+                <span>{openGame.title}</span>
+              )}
+            </div>
+            <div className="game-detail-copy">
+              <p>{systemName(openGame.systemId)}</p>
+              <h2 id="game-detail-title">{openGame.title}</h2>
+              <div className="metadata">
+                <span>{openGame.releaseYear ?? "Rok neznámy"}</span>
+                <span>{openGame.genre ?? "Hra"}</span>
+              </div>
+              <p>
+                {openGame.description ||
+                  "Metadata sa nenašli. Hru môžeš spustiť alebo skúsiť obnoviť metadata."}
+              </p>
+              <div className="game-detail-actions">
+                <button
+                  className="primary"
+                  onClick={() => void onPlay(openGame.id)}
+                >
+                  <Play size={20} fill="currentColor" /> Spustiť hru
+                </button>
+                <button
+                  className="secondary"
+                  disabled={Boolean(busy)}
+                  onClick={() =>
+                    void run("metadata", () => onRefreshMetadata(openGame.id))
+                  }
+                >
+                  {busy === "metadata" ? (
+                    <LoaderCircle className="spin" size={18} />
+                  ) : (
+                    <RefreshCw size={18} />
+                  )}
+                  Obnoviť metadata
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
