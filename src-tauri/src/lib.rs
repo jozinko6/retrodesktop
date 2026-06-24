@@ -7,6 +7,7 @@ mod emulators;
 mod error;
 mod library;
 mod managed_install;
+mod metadata;
 mod runner;
 mod security;
 mod state;
@@ -62,6 +63,70 @@ fn scan_directory(path: String, state: State<'_, AppState>) -> AppResult<Vec<Gam
         .canonicalize()
         .map_err(|_| AppError::NotFound(path))?;
     library::scan(&db::open(&state.database_path)?, &canonical)
+}
+
+#[tauri::command]
+fn import_game_file(
+    path: String,
+    system_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<Game>> {
+    let canonical = PathBuf::from(&path)
+        .canonicalize()
+        .map_err(|_| AppError::NotFound(path))?;
+    let connection = db::open(&state.database_path)?;
+    let game = library::import_file(&connection, &canonical, Some(&system_id))?;
+    let _ = enrich_game(&connection, &game.id, &game.title, &system_id);
+    db::games(&connection)
+}
+
+#[tauri::command]
+fn scan_directory_for_system(
+    path: String,
+    system_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<Vec<Game>> {
+    let canonical = PathBuf::from(&path)
+        .canonicalize()
+        .map_err(|_| AppError::NotFound(path))?;
+    let connection = db::open(&state.database_path)?;
+    let imported = library::scan_for_system(&connection, &canonical, Some(&system_id))?;
+    for game in imported.iter().take(20) {
+        let _ = enrich_game(&connection, &game.id, &game.title, &system_id);
+    }
+    db::games(&connection)
+}
+
+fn enrich_game(
+    connection: &rusqlite::Connection,
+    game_id: &str,
+    title: &str,
+    system_id: &str,
+) -> AppResult<()> {
+    let system_name = connection
+        .query_row(
+            "SELECT display_name FROM systems WHERE id=?1",
+            [system_id],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap_or_else(|_| system_id.to_owned());
+    let Some(metadata) = metadata::fetch(title, &system_name)? else {
+        return Ok(());
+    };
+    connection.execute(
+        "UPDATE games SET title=?1, sort_title=?1, description=?2, short_review=?3,
+         release_year=COALESCE(?4, release_year), metadata_source=?5,
+         updated_at=CURRENT_TIMESTAMP WHERE id=?6",
+        rusqlite::params![
+            metadata.title,
+            metadata.description,
+            metadata.short_review,
+            metadata.release_year,
+            metadata.source,
+            game_id
+        ],
+    )?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -605,6 +670,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_games,
             scan_directory,
+            import_game_file,
+            scan_directory_for_system,
             detect_platform,
             list_emulators,
             configure_emulator,

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, Gamepad2, Grid2X2, Heart, Home, Library, MonitorPlay, Play, Search, Settings, SlidersHorizontal, UserRound, Wrench } from "lucide-react";
 import { useGamepadNavigation } from "./hooks/useGamepadNavigation";
-import { chooseDirectory, chooseRetroArchCore, launchGame, listGames, scanDirectory } from "./lib/tauri";
-import type { Game } from "./types";
+import { chooseDirectory, chooseGameFile, chooseRetroArchCore, importGameFile, launchGame, listGames, scanDirectory, scanDirectoryForSystem } from "./lib/tauri";
+import type { Game, SystemId } from "./types";
 import { DownloadsPage } from "./components/DownloadsPage";
 import { EmulatorManager } from "./components/EmulatorManager";
 import { EmptyLibrary } from "./components/EmptyLibrary";
@@ -12,9 +12,10 @@ import { LibraryPage } from "./components/LibraryPage";
 import { Onboarding } from "./components/Onboarding";
 import { SettingsPage } from "./components/SettingsPage";
 import { SystemsPage } from "./components/SystemsPage";
+import { SystemLibraryPage } from "./components/SystemLibraryPage";
 import { WindowsDiscovery } from "./components/WindowsDiscovery";
 
-type Page = "home" | "library" | "systems" | "windows" | "downloads" | "emulators" | "settings";
+type Page = "home" | "library" | "systems" | "system-library" | "windows" | "downloads" | "emulators" | "settings";
 
 export function App() {
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem("retrobox:onboarded") === "true");
@@ -22,6 +23,7 @@ export function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState<string>();
+  const [selectedSystem, setSelectedSystem] = useState<SystemId>("nes");
   useGamepadNavigation(onboarded);
 
   useEffect(() => {
@@ -79,6 +81,36 @@ export function App() {
     }
   }
 
+  async function addGameFile(systemId: SystemId) {
+    const path = await chooseGameFile();
+    if (!path) return;
+    try {
+      const updated = await importGameFile(path, systemId);
+      setGames(updated);
+      const imported = updated.find((game) => game.primaryFile === path);
+      setSelectedId(imported?.id ?? updated[0]?.id ?? "");
+      setMessage(imported?.metadataSource
+        ? `Hra bola pridaná a metadata sa našli: ${imported.title}.`
+        : "Hra bola pridaná. Pre tento názov sa nenašla bezpečná zhoda metadát.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  async function addSystemFolder(systemId: SystemId) {
+    const path = await chooseDirectory();
+    if (!path) return;
+    try {
+      const updated = await scanDirectoryForSystem(path, systemId);
+      setGames(updated);
+      const first = updated.find((game) => game.systemId === systemId);
+      setSelectedId(first?.id ?? "");
+      setMessage(`Priečinok bol pridaný do knižnice ${systemId.toUpperCase()}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
   function restartOnboarding() {
     localStorage.removeItem("retrobox:onboarded");
     setOnboarded(false);
@@ -125,7 +157,9 @@ export function App() {
       case "library":
         return <LibraryPage games={games} selectedId={selectedId} onSelect={setSelectedId} onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} />;
       case "systems":
-        return <SystemsPage games={games} onOpenLibrary={() => setPage("library")} />;
+        return <SystemsPage games={games} onOpenSystem={(systemId) => { setSelectedSystem(systemId); setSelectedId(games.find((game) => game.systemId === systemId)?.id ?? ""); setPage("system-library"); }} />;
+      case "system-library":
+        return <SystemLibraryPage systemId={selectedSystem} games={games} selectedId={selectedId} onSelect={setSelectedId} onBack={() => setPage("systems")} onAddFile={() => addGameFile(selectedSystem)} onAddFolder={() => addSystemFolder(selectedSystem)} />;
       case "windows":
         return <WindowsDiscovery onImported={(items) => { setGames(items); setSelectedId(items[0]?.id ?? ""); setPage("library"); }} />;
       case "downloads":
@@ -148,7 +182,7 @@ export function App() {
         <nav>
           <IconButton label="Domov" active={page === "home"} onClick={() => setPage("home")}><Home /></IconButton>
           <IconButton label="Všetky hry" active={page === "library"} onClick={() => setPage("library")}><Library /></IconButton>
-          <IconButton label="Systémy" active={page === "systems"} onClick={() => setPage("systems")}><Grid2X2 /></IconButton>
+          <IconButton label="Systémy" active={page === "systems" || page === "system-library"} onClick={() => setPage("systems")}><Grid2X2 /></IconButton>
           <IconButton label="Windows hry" active={page === "windows"} onClick={() => setPage("windows")}><MonitorPlay /></IconButton>
           <IconButton label="Sťahovania" active={page === "downloads"} onClick={() => setPage("downloads")}><Download /></IconButton>
           <IconButton label="Emulátory" active={page === "emulators"} onClick={() => setPage("emulators")}><Wrench /></IconButton>

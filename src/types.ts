@@ -19,6 +19,8 @@ export interface Game {
   lastPlayedAt?: string;
   favorite: boolean;
   accent: string;
+  shortReview?: string;
+  metadataSource?: string;
 }
 
 export interface EmulatorStatus {

@@ -78,6 +78,18 @@ main { padding-bottom: 48px; }
 .system-grid button svg { color: var(--cyan); margin-bottom: auto; }
 .system-grid button strong { font-size: 20px; }
 .system-grid button span { color: var(--muted); font-size: 13px; }
+.system-grid button small { color: var(--cyan); text-transform: uppercase; letter-spacing: .12em; font-weight: 800; }
+.back-link { margin-bottom: 22px; border: 0; padding: 0; display: inline-flex; align-items: center; gap: 8px; color: var(--muted); background: transparent; cursor: pointer; }
+.system-library-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.system-library-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.system-library-actions button:disabled { opacity: .55; cursor: wait; }
+.system-game-detail { margin: 30px 0; padding: 24px; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 28px; border: 1px solid var(--border); border-radius: 18px; background: linear-gradient(135deg, #101d2f, #0b111d); }
+.system-game-detail h2 { margin: 4px 0 14px; font-size: 30px; }
+.system-game-detail > div > p:first-child { margin: 0; color: var(--cyan); text-transform: uppercase; letter-spacing: .14em; font-size: 11px; font-weight: 800; }
+.system-game-detail > div > p:last-child, .system-game-detail aside p { color: #aab7ca; line-height: 1.65; }
+.system-game-detail aside { padding-left: 24px; border-left: 1px solid var(--border); }
+.system-game-detail aside strong { color: #fff; }
+.system-game-detail aside small { color: #6f8199; }
 .settings-list { display: grid; gap: 10px; margin-top: 30px; }
 .settings-list article { min-height: 84px; padding: 17px; display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 16px; border: 1px solid var(--border); border-radius: 14px; background: #101827; }
 .settings-list article > svg { color: var(--cyan); }
@@ -158,5 +170,8 @@ main { padding-bottom: 48px; }
   .emulator-row { grid-template-columns: 50px 1fr; }
   .emulator-row .emulator-state, .emulator-row .emulator-actions { grid-column: 2; }
   .emulator-actions { justify-content: flex-start; }
+  .system-library-header { align-items: flex-start; flex-direction: column; }
+  .system-game-detail { grid-template-columns: 1fr; }
+  .system-game-detail aside { padding: 20px 0 0; border-left: 0; border-top: 1px solid var(--border); }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }

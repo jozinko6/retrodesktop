@@ -21,6 +21,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0004_windows_discovery",
         include_str!("../migrations/0004_windows_discovery.sql"),
     ),
+    (
+        "0005_system_library_metadata",
+        include_str!("../migrations/0005_system_library_metadata.sql"),
+    ),
 ];
 
 pub fn open(path: &Path) -> AppResult<Connection> {
@@ -64,7 +68,8 @@ pub fn games(connection: &Connection) -> AppResult<Vec<Game>> {
     let mut statement = connection.prepare(
         "SELECT id, title, system_id, primary_file, COALESCE(description, ''),
          release_year, developer, genre, total_play_time_seconds, last_played_at,
-         favorite, COALESCE(accent, '#15d6ff') FROM games ORDER BY sort_title",
+         favorite, COALESCE(accent, '#15d6ff'), short_review, metadata_source
+         FROM games ORDER BY sort_title",
     )?;
     let rows = statement.query_map([], |row| {
         Ok(Game {
@@ -80,6 +85,8 @@ pub fn games(connection: &Connection) -> AppResult<Vec<Game>> {
             last_played_at: row.get(9)?,
             favorite: row.get(10)?,
             accent: row.get(11)?,
+            short_review: row.get(12)?,
+            metadata_source: row.get(13)?,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)

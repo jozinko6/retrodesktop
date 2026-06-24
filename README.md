@@ -59,6 +59,10 @@ Adapters exist for RetroArch, PCSX2, Dolphin, PPSSPP, DuckStation, RPCS3, and Ce
 
 `Vložiť BIOS` accepts only emulator-appropriate local BIOS/firmware files, enforces size and extension limits, calculates SHA-256, and stores the file under the RetroBox data directory. RetroBox never downloads or ships games, BIOS, firmware, saves, or credentials.
 
+## System libraries and metadata
+
+The Systems page lists every supported platform, including empty libraries. Opening a system allows importing one local game file or scanning a folder while explicitly assigning that platform. New imports normalize common dump and disc tags and attempt a strict title match through the public MediaWiki API. Accepted matches store the canonical title, introductory description, release year when available, a short neutral overview, and the source URL. If the title match is uncertain or the service is unavailable, the legal local import still succeeds and RetroBox keeps the filename-derived title without inventing metadata.
+
 ## Controls and fullscreen
 
 Mouse and keyboard work naturally. The controller hook supports D-pad/left stick, deadzone, edge detection, delayed repeat, and prevents held accept buttons from repeatedly launching. Console-mode fullscreen/autostart settings remain to be wired to native Windows integration.

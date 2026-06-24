@@ -15,6 +15,8 @@ pub struct Game {
     pub last_played_at: Option<String>,
     pub favorite: bool,
     pub accent: String,
+    pub short_review: Option<String>,
+    pub metadata_source: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -13,6 +13,29 @@ export async function scanDirectory(path: string): Promise<Game[]> {
   return inTauri() ? invoke<Game[]>("scan_directory", { path }) : demoGames;
 }
 
+export async function chooseGameFile(): Promise<string | null> {
+  if (!inTauri()) return null;
+  const result = await open({
+    multiple: false,
+    title: "Vyber herný súbor",
+    filters: [{
+      name: "Podporované hry",
+      extensions: ["nes", "sfc", "smc", "gb", "gbc", "gba", "n64", "z64", "v64", "nds", "md", "gen", "sms", "gg", "a26", "a52", "a78", "lnx", "cue", "chd", "iso", "cso", "gcz", "rvz", "wbfs", "wad", "pbp", "zip", "7z", "rar", "jsdos", "adf", "d64", "exe", "bat", "com", "bin"]
+    }]
+  });
+  return typeof result === "string" ? result : null;
+}
+
+export async function importGameFile(path: string, systemId: string): Promise<Game[]> {
+  if (!inTauri()) return demoGames;
+  return invoke<Game[]>("import_game_file", { path, systemId });
+}
+
+export async function scanDirectoryForSystem(path: string, systemId: string): Promise<Game[]> {
+  if (!inTauri()) return demoGames;
+  return invoke<Game[]>("scan_directory_for_system", { path, systemId });
+}
+
 export async function detectPlatform(path: string): Promise<DetectionResult> {
   return inTauri()
     ? invoke<DetectionResult>("detect_platform", { path })
