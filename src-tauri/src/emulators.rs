@@ -186,6 +186,10 @@ pub fn statuses() -> Vec<EmulatorStatus> {
                     .iter()
                     .map(|value| (*value).into())
                     .collect(),
+                can_managed_install: false,
+                official_url: String::new(),
+                bios_required: false,
+                bios_configured: false,
             }
         })
         .collect()

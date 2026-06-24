@@ -8,7 +8,7 @@ The repository now builds as a native Windows application and includes a complet
 
 Windows Game Discovery can scan Steam libraries, Epic manifests, GOG registry entries, Windows shortcuts, and an explicitly selected portable-games directory. Results are deduplicated and shown for confirmation before entering the Windows category. See [WINDOWS_DISCOVERY.md](WINDOWS_DISCOVERY.md).
 
-Remote metadata clients, streamed/resumable production downloads, managed emulator installation, archive extraction, credential-vault integration, and save snapshot UI remain follow-up work. The UI does not claim these are complete.
+Remote metadata clients, resumable game downloads, credential-vault integration, and save snapshot UI remain follow-up work. Managed emulator installation now downloads official Windows portable releases, verifies archive boundaries, calculates SHA-256, extracts into the RetroBox data directory, and records the validated executable.
 
 ## Requirements
 
@@ -55,9 +55,9 @@ The provider architecture targets ScreenScraper, SteamGridDB, IGDB, and an offli
 
 ## Emulators and BIOS
 
-Adapters exist for RetroArch, PCSX2, Dolphin, PPSSPP, DuckStation, RPCS3, and Cemu. RetroArch has the first end-to-end configuration and launch flow. Detection and argument construction are implemented without shell interpolation. Before launch, users must provide a real executable, core, and any lawfully obtained BIOS/firmware required by that emulator.
+Adapters exist for RetroArch, PCSX2, Dolphin, PPSSPP, DuckStation, RPCS3, and Cemu. RetroArch, PCSX2, PPSSPP, DuckStation, and Cemu can be installed on demand from their official release channels. Dolphin and RPCS3 currently keep the official-download/manual-executable path because their release endpoints do not provide a stable resolver suitable for unattended installation.
 
-RetroBox never ships games, BIOS, firmware, saves, credentials, or downloaded emulator packages.
+`Vložiť BIOS` accepts only emulator-appropriate local BIOS/firmware files, enforces size and extension limits, calculates SHA-256, and stores the file under the RetroBox data directory. RetroBox never downloads or ships games, BIOS, firmware, saves, or credentials.
 
 ## Controls and fullscreen
 
@@ -65,7 +65,7 @@ Mouse and keyboard work naturally. The controller hook supports D-pad/left stick
 
 ## Known limitations
 
-- Real RetroArch execution requires a user-installed RetroArch executable and compatible core DLL.
-- Standalone emulator configuration is available, but full per-emulator BIOS/save diagnostics still follow the RetroArch vertical slice.
-- Managed downloads, extraction, remote scraping, media cache, BIOS hash catalog, save snapshots, diagnostics ZIP, and autostart are specified but not complete.
+- Real RetroArch execution still requires a compatible libretro core DLL for each configured game.
+- Managed emulator downloads are not resumable yet and show an indeterminate progress state while downloading and extracting.
+- Full per-emulator BIOS placement diagnostics, remote scraping, media cache, save snapshots, diagnostics ZIP, and autostart remain follow-up work.
 - The generated concept image is design documentation, not shipped UI content.

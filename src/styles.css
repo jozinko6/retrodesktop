@@ -122,12 +122,21 @@ main { padding-bottom: 48px; }
 .content-page header h1 { font-size: 48px; margin: 0 0 8px; }
 .content-page header span { color: var(--muted); }
 .emulator-list { margin-top: 38px; display: grid; gap: 12px; }
-.emulator-row { min-height: 92px; display: grid; grid-template-columns: 56px 1fr auto auto auto; align-items: center; gap: 18px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: rgba(16,24,39,.76); }
+.emulator-row { min-height: 92px; display: grid; grid-template-columns: 56px minmax(180px, 1fr) auto minmax(260px, auto); align-items: center; gap: 18px; padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: rgba(16,24,39,.76); }
 .emulator-logo { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; background: #19263b; color: var(--cyan); font-weight: 800; }
 .emulator-row h2, .emulator-row p { margin: 0; }
 .emulator-row p { margin-top: 4px; color: var(--muted); font-size: 12px; }
 .status { display: flex; align-items: center; gap: 7px; color: #f0b55b; font-size: 13px; }
 .status.ready { color: #4ee0a1; }
+.emulator-state { display: grid; gap: 4px; justify-items: start; }
+.emulator-state small { color: var(--muted); }
+.emulator-state .bios-ok { color: #4ee0a1; }
+.emulator-state .bios-missing { color: #f0b55b; }
+.emulator-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.emulator-row button { cursor: pointer; }
+.emulator-row button:disabled { opacity: .55; cursor: wait; }
+.spin { animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .toast { position: fixed; z-index: 30; left: 50%; bottom: 28px; transform: translateX(-50%); max-width: 560px; padding: 16px 20px; border: 1px solid #31506d; border-radius: 12px; background: #101c2d; box-shadow: 0 18px 60px #000; }
 .onboarding { min-height: 100vh; padding: 8vh 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .onboarding-progress { display: flex; gap: 7px; width: min(480px, 80vw); margin-bottom: 62px; }
@@ -147,6 +156,7 @@ main { padding-bottom: 48px; }
   .hero-copy { width: 100%; }
   .hero-art { opacity: .32; inset-left: 20%; }
   .emulator-row { grid-template-columns: 50px 1fr; }
-  .emulator-row > button, .emulator-row .status { grid-column: 2; }
+  .emulator-row .emulator-state, .emulator-row .emulator-actions { grid-column: 2; }
+  .emulator-actions { justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }

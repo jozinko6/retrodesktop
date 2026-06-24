@@ -42,6 +42,28 @@ pub struct EmulatorStatus {
     pub version: Option<String>,
     pub executable: Option<String>,
     pub supported_systems: Vec<String>,
+    pub can_managed_install: bool,
+    pub official_url: String,
+    pub bios_required: bool,
+    pub bios_configured: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallResult {
+    pub emulator_id: String,
+    pub version: String,
+    pub executable: String,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BiosImportResult {
+    pub emulator_id: String,
+    pub stored_path: String,
+    pub sha256: String,
+    pub size: u64,
 }
 
 #[derive(Debug, Clone)]

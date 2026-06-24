@@ -32,6 +32,9 @@ dirs = "6"
 walkdir = "2"
 sysinfo = "0.33"
 regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+zip = { version = "4", default-features = false, features = ["deflate", "deflate64", "bzip2", "zstd"] }
+sevenz-rust = "0.6"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"

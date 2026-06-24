@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { DetectionResult, EmulatorStatus, Game, LaunchResult, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
+import type { BiosImportResult, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchResult, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
 import { demoGames } from "../data/catalog";
 
 const inTauri = () => "__TAURI_INTERNALS__" in window;
@@ -23,10 +23,34 @@ export async function listEmulators(): Promise<EmulatorStatus[]> {
   return inTauri()
     ? invoke<EmulatorStatus[]>("list_emulators")
     : [
-        { id: "retroarch", displayName: "RetroArch", state: "not-installed", supportedSystems: ["NES", "SNES", "GBA", "Arcade"] },
-        { id: "pcsx2", displayName: "PCSX2", state: "not-installed", supportedSystems: ["PlayStation 2"] },
-        { id: "dolphin", displayName: "Dolphin", state: "not-installed", supportedSystems: ["GameCube", "Wii"] }
+        { id: "retroarch", displayName: "RetroArch", state: "not-installed", supportedSystems: ["NES", "SNES", "GBA", "Arcade"], canManagedInstall: true, officialUrl: "https://www.retroarch.com/?page=platforms", biosRequired: true, biosConfigured: false },
+        { id: "pcsx2", displayName: "PCSX2", state: "not-installed", supportedSystems: ["PlayStation 2"], canManagedInstall: true, officialUrl: "https://pcsx2.net/downloads/", biosRequired: true, biosConfigured: false },
+        { id: "dolphin", displayName: "Dolphin", state: "not-installed", supportedSystems: ["GameCube", "Wii"], canManagedInstall: false, officialUrl: "https://dolphin-emu.org/download/", biosRequired: false, biosConfigured: false }
       ];
+}
+
+export async function installManagedEmulator(emulatorId: string): Promise<InstallResult> {
+  if (!inTauri()) throw new Error("Automatická inštalácia je dostupná iba v desktopovej aplikácii.");
+  return invoke<InstallResult>("install_managed_emulator", { emulatorId });
+}
+
+export async function chooseBios(emulatorId: string): Promise<BiosImportResult | null> {
+  if (!inTauri()) return null;
+  const firmware = emulatorId === "rpcs3";
+  const result = await open({
+    multiple: false,
+    title: firmware ? "Vyber oficiálny PS3 firmware" : "Vyber BIOS súbor",
+    filters: firmware
+      ? [{ name: "PS3 firmware", extensions: ["pup"] }]
+      : [{ name: "BIOS", extensions: ["bin", "rom", "mec", "nvm"] }]
+  });
+  if (typeof result !== "string") return null;
+  return invoke<BiosImportResult>("import_bios", { emulatorId, sourcePath: result });
+}
+
+export async function openOfficialEmulatorPage(emulatorId: string): Promise<void> {
+  if (!inTauri()) throw new Error("Oficiálnu stránku otvoríš v desktopovej aplikácii.");
+  await invoke("open_official_emulator_page", { emulatorId });
 }
 
 export async function launchGame(gameId: string): Promise<LaunchResult> {

@@ -1,3 +1,4 @@
+mod bios;
 mod db;
 mod detection;
 mod domain;
@@ -5,6 +6,7 @@ mod download;
 mod emulators;
 mod error;
 mod library;
+mod managed_install;
 mod runner;
 mod security;
 mod state;
@@ -13,8 +15,8 @@ mod windows_discovery;
 use std::{fs, path::PathBuf};
 
 use domain::{
-    DetectionResult, EmulatorStatus, Game, LaunchCommand, LaunchResult, ResolvedDownload,
-    WindowsDiscoveryResult, WindowsGameCandidate,
+    BiosImportResult, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchCommand,
+    LaunchResult, ResolvedDownload, WindowsDiscoveryResult, WindowsGameCandidate,
 };
 use error::{AppError, AppResult};
 use state::AppState;
@@ -72,15 +74,26 @@ fn list_emulators(state: State<'_, AppState>) -> AppResult<Vec<EmulatorStatus>> 
     let connection = db::open(&state.database_path)?;
     let mut statuses = emulators::statuses();
     for status in &mut statuses {
+        status.can_managed_install = managed_install::can_install(&status.id);
+        status.official_url = managed_install::official_url(&status.id).into();
+        status.bios_required = managed_install::bios_required(&status.id);
+        status.bios_configured = bios::is_configured(&status.id, &app_data_dir());
         let configured = connection.query_row(
-            "SELECT executable, status FROM emulator_installations
+            "SELECT executable, status, version FROM emulator_installations
              WHERE emulator_id=?1 ORDER BY detected_at DESC LIMIT 1",
             [&status.id],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            },
         );
-        if let Ok((executable, installation_status)) = configured {
+        if let Ok((executable, installation_status, version)) = configured {
             status.executable = Some(executable);
             status.state = installation_status;
+            status.version = version;
         }
     }
     Ok(statuses)
@@ -110,7 +123,7 @@ fn configure_emulator(
     )?;
     let adapter = emulators::adapter(&emulator_id)?;
     Ok(EmulatorStatus {
-        id: emulator_id,
+        id: emulator_id.clone(),
         display_name: adapter.display_name().into(),
         state: "ready".into(),
         version: None,
@@ -120,7 +133,85 @@ fn configure_emulator(
             .iter()
             .map(|value| (*value).into())
             .collect(),
+        can_managed_install: managed_install::can_install(&emulator_id),
+        official_url: managed_install::official_url(&emulator_id).into(),
+        bios_required: managed_install::bios_required(&emulator_id),
+        bios_configured: bios::is_configured(&emulator_id, &app_data_dir()),
     })
+}
+
+#[tauri::command]
+fn install_managed_emulator(
+    emulator_id: String,
+    state: State<'_, AppState>,
+) -> AppResult<InstallResult> {
+    if !managed_install::can_install(&emulator_id) {
+        return Err(AppError::InvalidInput(
+            "Tento emulátor zatiaľ nemá bezpečný automatický release resolver.".into(),
+        ));
+    }
+    let result = managed_install::install(&emulator_id, &app_data_dir())?;
+    let executable =
+        emulators::validate_executable(&emulator_id, &PathBuf::from(&result.executable))?;
+    let mut connection = db::open(&state.database_path)?;
+    let transaction = connection.transaction()?;
+    transaction.execute(
+        "DELETE FROM emulator_installations WHERE emulator_id=?1",
+        [&emulator_id],
+    )?;
+    transaction.execute(
+        "INSERT INTO emulator_installations
+         (id, emulator_id, executable, version, managed, status, detected_at)
+         VALUES (?1, ?2, ?3, ?4, 1, 'ready', CURRENT_TIMESTAMP)",
+        rusqlite::params![
+            uuid::Uuid::new_v4().to_string(),
+            emulator_id,
+            executable.display().to_string(),
+            result.version
+        ],
+    )?;
+    transaction.commit()?;
+    Ok(result)
+}
+
+#[tauri::command]
+fn import_bios(
+    emulator_id: String,
+    source_path: String,
+    state: State<'_, AppState>,
+) -> AppResult<BiosImportResult> {
+    let root = app_data_dir();
+    let result = bios::import(&emulator_id, &PathBuf::from(source_path), &root)?;
+    let stored = PathBuf::from(&result.stored_path);
+    let relative = stored
+        .strip_prefix(&root)
+        .map_err(|_| AppError::Forbidden("BIOS bol uložený mimo dátového priečinka.".into()))?;
+    let connection = db::open(&state.database_path)?;
+    connection.execute(
+        "INSERT INTO bios_files(id, system_id, relative_path, size, sha256, status)
+         VALUES (?1, ?2, ?3, ?4, ?5, 'verified')",
+        rusqlite::params![
+            uuid::Uuid::new_v4().to_string(),
+            emulator_id,
+            relative.display().to_string(),
+            result.size,
+            result.sha256
+        ],
+    )?;
+    Ok(result)
+}
+
+#[tauri::command]
+fn open_official_emulator_page(emulator_id: String) -> AppResult<()> {
+    let url = managed_install::official_url(&emulator_id);
+    if url.is_empty() {
+        return Err(AppError::InvalidInput("Neznámy emulátor.".into()));
+    }
+    std::process::Command::new("explorer.exe")
+        .arg(url)
+        .spawn()
+        .map_err(AppError::Io)?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -517,6 +608,9 @@ pub fn run() {
             detect_platform,
             list_emulators,
             configure_emulator,
+            install_managed_emulator,
+            import_bios,
+            open_official_emulator_page,
             configure_retroarch_game,
             resolve_download_url,
             safe_filename,

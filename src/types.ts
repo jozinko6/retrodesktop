@@ -28,6 +28,24 @@ export interface EmulatorStatus {
   version?: string;
   executable?: string;
   supportedSystems: string[];
+  canManagedInstall: boolean;
+  officialUrl: string;
+  biosRequired: boolean;
+  biosConfigured: boolean;
+}
+
+export interface InstallResult {
+  emulatorId: string;
+  version: string;
+  executable: string;
+  sha256: string;
+}
+
+export interface BiosImportResult {
+  emulatorId: string;
+  storedPath: string;
+  sha256: string;
+  size: number;
 }
 
 export interface LaunchResult {
