@@ -7,6 +7,7 @@ import { DownloadsPage } from "./components/DownloadsPage";
 import { EmulatorManager } from "./components/EmulatorManager";
 import { EmptyLibrary } from "./components/EmptyLibrary";
 import { GameCard } from "./components/GameCard";
+import { GameDetailDialog } from "./components/GameDetailDialog";
 import { IconButton } from "./components/IconButton";
 import { LibraryPage } from "./components/LibraryPage";
 import { Onboarding } from "./components/Onboarding";
@@ -24,6 +25,7 @@ export function App() {
   const [selectedId, setSelectedId] = useState("");
   const [message, setMessage] = useState<string>();
   const [selectedSystem, setSelectedSystem] = useState<SystemId>("nes");
+  const [openHomeGameId, setOpenHomeGameId] = useState<string>();
   useGamepadNavigation(onboarded);
 
   useEffect(() => {
@@ -135,7 +137,9 @@ export function App() {
     if (!games.length) {
       return <EmptyLibrary onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} onImportGame={() => setPage("systems")} />;
     }
+    const openHomeGame = games.find((game) => game.id === openHomeGameId);
     return (
+      <>
       <main>
         <section className="hero" style={{ "--hero-accent": selected?.accent ?? "#15d6ff" } as React.CSSProperties}>
           <div className={`hero-art ${selected?.coverPath ? "with-cover" : ""}`} aria-hidden="true">
@@ -156,7 +160,7 @@ export function App() {
         <section className="rail">
           <div className="section-heading"><div><p>Knižnica</p><h2>Nedávno hrané</h2></div><span>{games.length} hier</span></div>
           <div className="game-row">
-            {games.map((game) => <GameCard key={game.id} game={game} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />)}
+            {games.map((game) => <GameCard key={game.id} game={game} selected={game.id === selectedId} onSelect={() => { setSelectedId(game.id); setOpenHomeGameId(game.id); }} />)}
           </div>
         </section>
         <section className="quick-links">
@@ -165,6 +169,15 @@ export function App() {
           <button onClick={() => setPage("library")}><Library /> Všetky hry</button>
         </section>
       </main>
+      {openHomeGame ? (
+        <GameDetailDialog
+          game={openHomeGame}
+          onClose={() => setOpenHomeGameId(undefined)}
+          onPlay={(gameId) => play(gameId, true)}
+          onRefreshMetadata={refreshMetadata}
+        />
+      ) : null}
+      </>
     );
   }
 
@@ -173,7 +186,7 @@ export function App() {
       case "home":
         return renderHome();
       case "library":
-        return <LibraryPage games={games} selectedId={selectedId} onSelect={setSelectedId} onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} />;
+        return <LibraryPage games={games} selectedId={selectedId} onSelect={setSelectedId} onAddFolder={() => void addFolder()} onWindowsScan={() => setPage("windows")} onPlay={(gameId) => play(gameId, true)} onRefreshMetadata={refreshMetadata} />;
       case "systems":
         return <SystemsPage games={games} onOpenSystem={(systemId) => { setSelectedSystem(systemId); setSelectedId(games.find((game) => game.systemId === systemId)?.id ?? ""); setPage("system-library"); }} />;
       case "system-library":

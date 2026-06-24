@@ -2,27 +2,34 @@ import { FolderPlus, MonitorPlay, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Game } from "../types";
 import { GameCard } from "./GameCard";
+import { GameDetailDialog } from "./GameDetailDialog";
 
 export function LibraryPage({
   games,
   selectedId,
   onSelect,
   onAddFolder,
-  onWindowsScan
+  onWindowsScan,
+  onPlay,
+  onRefreshMetadata,
 }: {
   games: Game[];
   selectedId: string;
   onSelect: (id: string) => void;
   onAddFolder: () => void;
   onWindowsScan: () => void;
+  onPlay: (gameId: string) => Promise<void>;
+  onRefreshMetadata: (gameId: string) => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
+  const [openGameId, setOpenGameId] = useState<string>();
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("sk");
     return normalized
       ? games.filter((game) => `${game.title} ${game.systemId} ${game.genre ?? ""}`.toLocaleLowerCase("sk").includes(normalized))
       : games;
   }, [games, query]);
+  const openGame = games.find((game) => game.id === openGameId);
 
   return (
     <main className="content-page library-page">
@@ -37,7 +44,7 @@ export function LibraryPage({
         </label> : null}
       {filtered.length ? (
         <div className="library-grid">
-          {filtered.map((game) => <GameCard key={game.id} game={game} selected={game.id === selectedId} onSelect={() => onSelect(game.id)} />)}
+          {filtered.map((game) => <GameCard key={game.id} game={game} selected={game.id === selectedId} onSelect={() => { onSelect(game.id); setOpenGameId(game.id); }} />)}
         </div>
       ) : games.length ? <div className="page-empty"><Search size={36} /><h2>Nenašla sa žiadna hra.</h2><p>Skús zmeniť hľadaný výraz.</p></div> : (
         <div className="page-empty">
@@ -50,6 +57,14 @@ export function LibraryPage({
           </div>
         </div>
       )}
+      {openGame ? (
+        <GameDetailDialog
+          game={openGame}
+          onClose={() => setOpenGameId(undefined)}
+          onPlay={onPlay}
+          onRefreshMetadata={onRefreshMetadata}
+        />
+      ) : null}
     </main>
   );
 }
