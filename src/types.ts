@@ -66,6 +66,35 @@ export interface LaunchResult {
   durationSeconds: number;
 }
 
+export interface CatalogGame {
+  id: string;
+  title: string;
+  description: string;
+  systemId: SystemId;
+  developer: string;
+  genre: string;
+  license: string;
+  licenseUrl: string;
+  sourceUrl: string;
+  fileName: string;
+  fileSize: number;
+  sha256: string;
+  thumbnailUrl: string;
+}
+
+export interface CatalogDownloadProgress {
+  gameId: string;
+  bytesDownloaded: number;
+  totalBytes: number;
+  status: "downloading" | "completed" | "failed";
+}
+
+export interface CatalogDownloadResult {
+  game: Game;
+  sha256: string;
+  storedPath: string;
+}
+
 export interface DetectionResult {
   systemId: SystemId | null;
   confidence: number;

@@ -18,6 +18,12 @@ vi.mock("./lib/tauri", () => ({
   getRemotePlayStatus: vi.fn().mockResolvedValue({ installed: false, running: false, webUiUrl: "https://localhost:47990", port: 47990 }),
   startRemotePlayHost: vi.fn(),
   openRemotePlayTarget: vi.fn()
+  ,
+  fetchCatalog: vi.fn().mockResolvedValue([]),
+  getDownloadDirectory: vi.fn().mockResolvedValue(null),
+  subscribeCatalogDownloadProgress: vi.fn().mockResolvedValue(() => undefined),
+  requestCatalogDownload: vi.fn(),
+  openCatalogTarget: vi.fn()
 }));
 
 describe("App navigation", () => {

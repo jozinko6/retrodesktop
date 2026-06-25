@@ -75,6 +75,40 @@ main { padding-bottom: 48px; }
 .page-empty { min-height: 330px; display: grid; place-items: center; align-content: center; text-align: center; color: var(--muted); }
 .page-empty svg { color: var(--cyan); }
 .page-empty h2 { color: #fff; margin-bottom: 0; }
+.catalog-notice { margin-top: 28px; padding: 20px; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 16px; border: 1px solid #28506a; border-radius: 16px; background: #0d1928; }
+.catalog-notice > svg { color: #55e0a6; }
+.catalog-notice h2, .catalog-notice p { margin: 0; }
+.catalog-notice h2 { font-size: 18px; }
+.catalog-notice p { margin-top: 5px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.download-directory { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.catalog-grid { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
+.catalog-card { min-height: 275px; overflow: hidden; display: grid; grid-template-columns: 128px 1fr; border: 1px solid var(--border); border-radius: 18px; background: #101827; }
+.catalog-art { position: relative; display: grid; place-items: center; overflow: hidden; color: #031018; background: linear-gradient(145deg, #16d6ff, #43e3a0); }
+.catalog-art::after { content: ""; position: absolute; width: 150px; height: 150px; border: 28px solid rgba(255,255,255,.18); border-radius: 50%; transform: translate(38px, 65px); }
+.catalog-art span { position: absolute; top: 15px; left: 15px; font-size: 11px; font-weight: 900; letter-spacing: .15em; }
+.catalog-art strong { font-size: 42px; }
+.catalog-card-copy { padding: 20px; display: flex; flex-direction: column; align-items: flex-start; }
+.catalog-card-copy h2 { margin: 10px 0 5px; }
+.catalog-card-copy p { margin: 0; color: #a7b5c9; font-size: 13px; line-height: 1.5; }
+.catalog-card-copy small { margin-top: 9px; color: #71829a; }
+.catalog-card-copy .primary { width: 100%; min-height: 44px; margin-top: auto; padding-inline: 14px; font-size: 13px; }
+.catalog-card-copy button:disabled { opacity: .7; cursor: wait; }
+.catalog-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.catalog-tags span { padding: 4px 7px; border-radius: 6px; color: #84dffc; background: #17283d; font-size: 10px; font-weight: 800; }
+.download-progress { width: 100%; height: 7px; overflow: hidden; margin: 13px 0; border-radius: 99px; background: #273449; }
+.download-progress span { display: block; height: 100%; border-radius: inherit; background: var(--cyan); transition: width .18s ease; }
+.download-confirm-backdrop { position: fixed; z-index: 40; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(2,5,11,.8); backdrop-filter: blur(8px); }
+.download-confirm { position: relative; width: min(700px, 94vw); max-height: 90vh; overflow: auto; padding: 30px; border: 1px solid #31506d; border-radius: 20px; background: #0d1726; box-shadow: 0 35px 100px #000; }
+.download-confirm > p:first-of-type { margin: 0; color: var(--cyan); text-transform: uppercase; letter-spacing: .15em; font-size: 11px; font-weight: 800; }
+.download-confirm h2 { margin: 7px 0 22px; font-size: 30px; }
+.download-confirm dl { margin: 0; display: grid; gap: 10px; }
+.download-confirm dl div { padding: 11px 0; display: grid; grid-template-columns: 95px minmax(0, 1fr); gap: 14px; border-bottom: 1px solid var(--border); }
+.download-confirm dt { color: var(--muted); font-size: 12px; }
+.download-confirm dd { margin: 0; overflow-wrap: anywhere; font-size: 13px; }
+.hash-value { color: #7cdcb2; font-family: "Consolas", monospace; }
+.license-confirmation { color: #9cacbf; line-height: 1.5; font-size: 13px; }
+.download-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+.download-confirm-actions .primary, .download-confirm-actions .secondary { min-height: 46px; padding-inline: 17px; }
 .system-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 30px; }
 .system-grid button { min-height: 150px; padding: 22px; border: 1px solid var(--border); border-radius: 16px; display: flex; flex-direction: column; align-items: flex-start; justify-content: end; gap: 7px; color: #fff; background: linear-gradient(145deg, #16253a, #0c1421); cursor: pointer; }
 .system-grid button svg { color: var(--cyan); margin-bottom: auto; }
@@ -225,6 +259,10 @@ main { padding-bottom: 48px; }
   .remote-status-card { grid-template-columns: 58px 1fr; }
   .remote-status-actions { grid-column: 1 / -1; justify-content: flex-start; }
   .remote-steps { grid-template-columns: 1fr; }
+  .catalog-notice { grid-template-columns: 42px 1fr; }
+  .catalog-notice .secondary { grid-column: 1 / -1; }
+  .catalog-grid { grid-template-columns: 1fr; }
+  .catalog-card { grid-template-columns: 100px 1fr; }
 }
 @media (max-height: 760px) {
   .sidebar { padding-block: 14px; }

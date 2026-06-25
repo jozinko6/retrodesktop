@@ -103,6 +103,41 @@ pub struct ResolvedDownload {
     pub log_safe_url: String,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogGame {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub system_id: String,
+    pub developer: String,
+    pub genre: String,
+    pub license: String,
+    pub license_url: String,
+    pub source_url: String,
+    pub file_name: String,
+    pub file_size: u64,
+    pub sha256: String,
+    pub thumbnail_url: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogDownloadProgress {
+    pub game_id: String,
+    pub bytes_downloaded: u64,
+    pub total_bytes: u64,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogDownloadResult {
+    pub game: Game,
+    pub sha256: String,
+    pub stored_path: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WindowsGameCandidate {

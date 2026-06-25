@@ -17,12 +17,13 @@ mod windows_discovery;
 use std::{fs, path::PathBuf};
 
 use domain::{
-    BiosImportResult, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchCommand,
-    LaunchResult, RemotePlayStatus, ResolvedDownload, WindowsDiscoveryResult, WindowsGameCandidate,
+    BiosImportResult, CatalogDownloadResult, CatalogGame, DetectionResult, EmulatorStatus, Game,
+    InstallResult, LaunchCommand, LaunchResult, RemotePlayStatus, ResolvedDownload,
+    WindowsDiscoveryResult, WindowsGameCandidate,
 };
 use error::{AppError, AppResult};
 use state::AppState;
-use tauri::{Manager, State};
+use tauri::{AppHandle, Manager, State};
 
 fn app_data_dir() -> PathBuf {
     dirs::data_local_dir()
@@ -387,6 +388,87 @@ fn resolve_download_url(url: String) -> AppResult<ResolvedDownload> {
 }
 
 #[tauri::command]
+fn fetch_catalog() -> Vec<CatalogGame> {
+    download::catalog()
+}
+
+#[tauri::command]
+fn get_download_directory(state: State<'_, AppState>) -> AppResult<Option<String>> {
+    let connection = db::open(&state.database_path)?;
+    let value = connection.query_row(
+        "SELECT value_json FROM settings WHERE key='download_directory'",
+        [],
+        |row| row.get::<_, String>(0),
+    );
+    match value {
+        Ok(value) => serde_json::from_str(&value)
+            .map(Some)
+            .map_err(|error| AppError::InvalidInput(format!("Nastavenie priečinka: {error}"))),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(error) => Err(error.into()),
+    }
+}
+
+#[tauri::command]
+fn request_catalog_download(
+    game_id: String,
+    target_directory: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> AppResult<CatalogDownloadResult> {
+    let connection = db::open(&state.database_path)?;
+    let downloaded = download::download_catalog_game(
+        &game_id,
+        &PathBuf::from(target_directory),
+        &app_data_dir(),
+        &connection,
+        &app,
+    )?;
+    let imported = library::import_file(
+        &connection,
+        &downloaded.path,
+        Some(&downloaded.catalog.system_id),
+    )?;
+    connection.execute(
+        "UPDATE games SET title=?1, sort_title=?1, description=?2, developer=?3,
+         genre=?4, short_review=?2, metadata_source=?5, file_hash=?6,
+         file_size=?7, updated_at=CURRENT_TIMESTAMP WHERE id=?8",
+        rusqlite::params![
+            &downloaded.catalog.title,
+            &downloaded.catalog.description,
+            &downloaded.catalog.developer,
+            &downloaded.catalog.genre,
+            &downloaded.catalog.source_url,
+            &downloaded.sha256,
+            downloaded.catalog.file_size as i64,
+            &imported.id
+        ],
+    )?;
+    connection.execute(
+        "UPDATE game_files SET sha256=?1, size=?2 WHERE game_id=?3 AND role='primary'",
+        rusqlite::params![
+            &downloaded.sha256,
+            downloaded.catalog.file_size as i64,
+            &imported.id
+        ],
+    )?;
+    let game = db::games(&connection)?
+        .into_iter()
+        .find(|game| game.id == imported.id)
+        .ok_or_else(|| AppError::NotFound(imported.id))?;
+    Ok(CatalogDownloadResult {
+        game,
+        sha256: downloaded.sha256,
+        stored_path: downloaded.path.display().to_string(),
+    })
+}
+
+#[tauri::command]
+fn open_catalog_target(game_id: String, target: String) -> AppResult<()> {
+    download::open_catalog_target(&game_id, &target)
+}
+
+#[tauri::command]
 fn safe_filename(name: String) -> String {
     security::sanitize_filename(&name)
 }
@@ -747,6 +829,10 @@ pub fn run() {
             open_remote_play_target,
             configure_retroarch_game,
             resolve_download_url,
+            fetch_catalog,
+            get_download_directory,
+            request_catalog_download,
+            open_catalog_target,
             safe_filename,
             scan_windows_games,
             list_windows_candidates,

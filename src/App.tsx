@@ -197,7 +197,10 @@ export function App() {
       case "remote-play":
         return <RemotePlayPage />;
       case "downloads":
-        return <DownloadsPage />;
+        return <DownloadsPage onDownloaded={(game) => {
+          setGames((current) => [...current.filter((item) => item.id !== game.id), game]);
+          setSelectedId(game.id);
+        }} />;
       case "emulators":
         return <EmulatorManager />;
       case "settings":

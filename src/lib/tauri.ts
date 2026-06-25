@@ -1,6 +1,7 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { BiosImportResult, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchResult, RemotePlayStatus, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
+import type { BiosImportResult, CatalogDownloadProgress, CatalogDownloadResult, CatalogGame, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchResult, RemotePlayStatus, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
 import { demoGames } from "../data/catalog";
 
 const inTauri = () => "__TAURI_INTERNALS__" in window;
@@ -42,6 +43,64 @@ export async function scanDirectoryForSystem(path: string, systemId: string): Pr
 export async function refreshGameMetadata(gameId: string): Promise<Game[]> {
   if (!inTauri()) return demoGames;
   return invoke<Game[]>("refresh_game_metadata", { gameId });
+}
+
+const demoCatalog: CatalogGame[] = [
+  {
+    id: "gruniozerca",
+    title: "Gruniożerca",
+    description: "Public-domain arkádová homebrew hra pre NES.",
+    systemId: "nes",
+    developer: "Łukasz Kur a Ryszard Brzukała",
+    genre: "Arkádová",
+    license: "Unlicense / CC BY-SA 3.0 hudba",
+    licenseUrl: "https://github.com/arhneu/gruniozerca",
+    sourceUrl: "https://github.com/arhneu/gruniozerca",
+    fileName: "grunio.nes",
+    fileSize: 40976,
+    sha256: "ae049634a943de140c238b5b4c416d9cf22054cb88d228d22aade1942cf478b0",
+    thumbnailUrl: "",
+  },
+  {
+    id: "big2small",
+    title: "Big2Small",
+    description: "GPL-3.0 logická homebrew hra pre Game Boy.",
+    systemId: "gb",
+    developer: "Matthew D. Steele",
+    genre: "Logická",
+    license: "GPL-3.0",
+    licenseUrl: "https://github.com/mdsteele/big2small/blob/v1.0.0/LICENSE",
+    sourceUrl: "https://github.com/mdsteele/big2small/releases/tag/v1.0.0",
+    fileName: "big2small.gb",
+    fileSize: 65536,
+    sha256: "59c096333f93c12c8eb25a5fcffa2be15001abcd5d20b9a82c2bc2dae7e625b2",
+    thumbnailUrl: "",
+  },
+];
+
+export async function fetchCatalog(): Promise<CatalogGame[]> {
+  return inTauri() ? invoke<CatalogGame[]>("fetch_catalog") : demoCatalog;
+}
+
+export async function getDownloadDirectory(): Promise<string | null> {
+  return inTauri() ? invoke<string | null>("get_download_directory") : null;
+}
+
+export async function requestCatalogDownload(gameId: string, targetDirectory: string): Promise<CatalogDownloadResult> {
+  if (!inTauri()) throw new Error("Sťahovanie je dostupné iba v desktopovej aplikácii.");
+  return invoke<CatalogDownloadResult>("request_catalog_download", { gameId, targetDirectory });
+}
+
+export async function openCatalogTarget(gameId: string, target: "license" | "source"): Promise<void> {
+  if (!inTauri()) return;
+  await invoke("open_catalog_target", { gameId, target });
+}
+
+export async function subscribeCatalogDownloadProgress(
+  callback: (progress: CatalogDownloadProgress) => void,
+): Promise<UnlistenFn> {
+  if (!inTauri()) return () => undefined;
+  return listen<CatalogDownloadProgress>("catalog-download-progress", (event) => callback(event.payload));
 }
 
 export async function detectPlatform(path: string): Promise<DetectionResult> {

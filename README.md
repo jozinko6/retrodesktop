@@ -49,6 +49,12 @@ Rust scans explicitly selected watched folders without following symlinks. It pe
 
 Link imports accept only HTTP/HTTPS and recognize direct links plus public Google Drive, Dropbox, and OneDrive link shapes. Private links, authentication bypasses, ROM sites, torrents, and BIOS downloads are intentionally unsupported.
 
+## Curated downloads
+
+The Downloads page exposes a small manually reviewed catalog instead of scraping ROM sites. Every entry records its redistribution license and source repository, uses an immutable release or commit URL, and pins the exact byte size and SHA-256 digest. The backend streams into a temporary file, rejects redirects outside approved GitHub asset hosts, enforces format signatures and size limits, then atomically stores the verified file.
+
+Before downloading, the UI shows the license, source, size, digest, and destination for explicit confirmation. Successful downloads create a UTF-8 JSON metadata sidecar, enter the normal game library, persist the chosen download directory, and write an audit line to `logs/downloads.log`. The initial catalog contains only explicitly redistributable Unlicense, CC0, and GPL homebrew artifacts.
+
 ## Scraping
 
 The provider architecture targets ScreenScraper, SteamGridDB, IGDB, and an offline filename fallback. Credentials must eventually be stored in Windows Credential Manager; they must never be kept in localStorage or committed. Production remote clients are not yet implemented in this baseline.
@@ -77,6 +83,8 @@ For the most reliable remote multiplayer setup, connect multiple Bluetooth contr
 
 - Real RetroArch execution still requires a compatible libretro core DLL for each configured game.
 - Managed emulator downloads are not resumable yet and show an indeterminate progress state while downloading and extracting.
+- The curated game catalog is intentionally small and manually maintained; arbitrary ROM-site scraping is not supported.
+- TheGamesDB/IGDB credential storage and provider fallback are not enabled until OS-keychain integration is added.
 - Sunshine installation and firewall approval remain an explicit user-controlled step because the official Windows installer may require administrator access.
 - Full per-emulator BIOS placement diagnostics, remote scraping, media cache, save snapshots, diagnostics ZIP, and autostart remain follow-up work.
 - The generated concept image is design documentation, not shipped UI content.
