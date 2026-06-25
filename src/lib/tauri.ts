@@ -1,0 +1,224 @@
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { open } from "@tauri-apps/plugin-dialog";
+import type { BiosImportResult, CatalogDownloadProgress, CatalogDownloadResult, CatalogGame, DetectionResult, EmulatorStatus, Game, InstallResult, LaunchResult, RemotePlayStatus, WindowsDiscoveryResult, WindowsGameCandidate } from "../types";
+import { demoGames } from "../data/catalog";
+
+const inTauri = () => "__TAURI_INTERNALS__" in window;
+
+export const localAssetUrl = (path?: string) =>
+  path && inTauri() ? convertFileSrc(path) : undefined;
+
+export async function listGames(): Promise<Game[]> {
+  return inTauri() ? invoke<Game[]>("list_games") : import.meta.env.VITE_DEMO_DATA === "true" ? demoGames : [];
+}
+
+export async function scanDirectory(path: string): Promise<Game[]> {
+  return inTauri() ? invoke<Game[]>("scan_directory", { path }) : demoGames;
+}
+
+export async function chooseGameFile(): Promise<string | null> {
+  if (!inTauri()) return null;
+  const result = await open({
+    multiple: false,
+    title: "Vyber herný súbor",
+    filters: [{
+      name: "Podporované hry",
+      extensions: ["nes", "sfc", "smc", "gb", "gbc", "gba", "n64", "z64", "v64", "nds", "md", "gen", "sms", "gg", "a26", "a52", "a78", "lnx", "cue", "chd", "iso", "cso", "gcz", "rvz", "wbfs", "wad", "pbp", "zip", "7z", "rar", "jsdos", "adf", "d64", "exe", "bat", "com", "bin"]
+    }]
+  });
+  return typeof result === "string" ? result : null;
+}
+
+export async function importGameFile(path: string, systemId: string): Promise<Game[]> {
+  if (!inTauri()) return demoGames;
+  return invoke<Game[]>("import_game_file", { path, systemId });
+}
+
+export async function scanDirectoryForSystem(path: string, systemId: string): Promise<Game[]> {
+  if (!inTauri()) return demoGames;
+  return invoke<Game[]>("scan_directory_for_system", { path, systemId });
+}
+
+export async function refreshGameMetadata(gameId: string): Promise<Game[]> {
+  if (!inTauri()) return demoGames;
+  return invoke<Game[]>("refresh_game_metadata", { gameId });
+}
+
+const demoCatalog: CatalogGame[] = [
+  {
+    id: "gruniozerca",
+    title: "Gruniożerca",
+    description: "Public-domain arkádová homebrew hra pre NES.",
+    systemId: "nes",
+    developer: "Łukasz Kur a Ryszard Brzukała",
+    genre: "Arkádová",
+    license: "Unlicense / CC BY-SA 3.0 hudba",
+    licenseUrl: "https://github.com/arhneu/gruniozerca",
+    sourceUrl: "https://github.com/arhneu/gruniozerca",
+    fileName: "grunio.nes",
+    fileSize: 40976,
+    sha256: "ae049634a943de140c238b5b4c416d9cf22054cb88d228d22aade1942cf478b0",
+    thumbnailUrl: "",
+  },
+  {
+    id: "big2small",
+    title: "Big2Small",
+    description: "GPL-3.0 logická homebrew hra pre Game Boy.",
+    systemId: "gb",
+    developer: "Matthew D. Steele",
+    genre: "Logická",
+    license: "GPL-3.0",
+    licenseUrl: "https://github.com/mdsteele/big2small/blob/v1.0.0/LICENSE",
+    sourceUrl: "https://github.com/mdsteele/big2small/releases/tag/v1.0.0",
+    fileName: "big2small.gb",
+    fileSize: 65536,
+    sha256: "59c096333f93c12c8eb25a5fcffa2be15001abcd5d20b9a82c2bc2dae7e625b2",
+    thumbnailUrl: "",
+  },
+];
+
+export async function fetchCatalog(): Promise<CatalogGame[]> {
+  return inTauri() ? invoke<CatalogGame[]>("fetch_catalog") : demoCatalog;
+}
+
+export async function getDownloadDirectory(): Promise<string | null> {
+  return inTauri() ? invoke<string | null>("get_download_directory") : null;
+}
+
+export async function requestCatalogDownload(gameId: string, targetDirectory: string): Promise<CatalogDownloadResult> {
+  if (!inTauri()) throw new Error("Sťahovanie je dostupné iba v desktopovej aplikácii.");
+  return invoke<CatalogDownloadResult>("request_catalog_download", { gameId, targetDirectory });
+}
+
+export async function openCatalogTarget(gameId: string, target: "license" | "source"): Promise<void> {
+  if (!inTauri()) return;
+  await invoke("open_catalog_target", { gameId, target });
+}
+
+export async function subscribeCatalogDownloadProgress(
+  callback: (progress: CatalogDownloadProgress) => void,
+): Promise<UnlistenFn> {
+  if (!inTauri()) return () => undefined;
+  return listen<CatalogDownloadProgress>("catalog-download-progress", (event) => callback(event.payload));
+}
+
+export async function detectPlatform(path: string): Promise<DetectionResult> {
+  return inTauri()
+    ? invoke<DetectionResult>("detect_platform", { path })
+    : { systemId: "unknown", confidence: 0.25, evidence: ["Ukážkový režim prehliadača"], candidates: [] };
+}
+
+export async function listEmulators(): Promise<EmulatorStatus[]> {
+  return inTauri()
+    ? invoke<EmulatorStatus[]>("list_emulators")
+    : [
+        { id: "retroarch", displayName: "RetroArch", state: "not-installed", supportedSystems: ["NES", "SNES", "GBA", "Arcade"], canManagedInstall: true, officialUrl: "https://www.retroarch.com/?page=platforms", biosRequired: true, biosConfigured: false },
+        { id: "pcsx2", displayName: "PCSX2", state: "not-installed", supportedSystems: ["PlayStation 2"], canManagedInstall: true, officialUrl: "https://pcsx2.net/downloads/", biosRequired: true, biosConfigured: false },
+        { id: "dolphin", displayName: "Dolphin", state: "not-installed", supportedSystems: ["GameCube", "Wii"], canManagedInstall: false, officialUrl: "https://dolphin-emu.org/download/", biosRequired: false, biosConfigured: false }
+      ];
+}
+
+export async function installManagedEmulator(emulatorId: string): Promise<InstallResult> {
+  if (!inTauri()) throw new Error("Automatická inštalácia je dostupná iba v desktopovej aplikácii.");
+  return invoke<InstallResult>("install_managed_emulator", { emulatorId });
+}
+
+export async function chooseBios(emulatorId: string): Promise<BiosImportResult | null> {
+  if (!inTauri()) return null;
+  const firmware = emulatorId === "rpcs3";
+  const result = await open({
+    multiple: false,
+    title: firmware ? "Vyber oficiálny PS3 firmware" : "Vyber BIOS súbor",
+    filters: firmware
+      ? [{ name: "PS3 firmware", extensions: ["pup"] }]
+      : [{ name: "BIOS", extensions: ["bin", "rom", "mec", "nvm"] }]
+  });
+  if (typeof result !== "string") return null;
+  return invoke<BiosImportResult>("import_bios", { emulatorId, sourcePath: result });
+}
+
+export async function openOfficialEmulatorPage(emulatorId: string): Promise<void> {
+  if (!inTauri()) throw new Error("Oficiálnu stránku otvoríš v desktopovej aplikácii.");
+  await invoke("open_official_emulator_page", { emulatorId });
+}
+
+export async function getRemotePlayStatus(): Promise<RemotePlayStatus> {
+  if (!inTauri()) {
+    return {
+      installed: false,
+      running: false,
+      localIp: "192.168.1.100",
+      webUiUrl: "https://localhost:47990",
+      port: 47990,
+    };
+  }
+  return invoke<RemotePlayStatus>("remote_play_status");
+}
+
+export async function startRemotePlayHost(): Promise<RemotePlayStatus> {
+  if (!inTauri()) throw new Error("Sunshine host sa dá spustiť iba v desktopovej aplikácii.");
+  return invoke<RemotePlayStatus>("start_remote_play_host");
+}
+
+export async function openRemotePlayTarget(target: "web-ui" | "sunshine-download" | "moonlight-download"): Promise<void> {
+  if (!inTauri()) return;
+  await invoke("open_remote_play_target", { target });
+}
+
+export async function launchGame(gameId: string): Promise<LaunchResult> {
+  if (!inTauri()) throw new Error("Spustenie hier je dostupné v desktopovej aplikácii po konfigurácii emulátora.");
+  return invoke<LaunchResult>("launch_game", { gameId });
+}
+
+export async function chooseDirectory(): Promise<string | null> {
+  if (!inTauri()) return null;
+  const result = await open({ directory: true, multiple: false, title: "Vyber priečinok s hrami" });
+  return typeof result === "string" ? result : null;
+}
+
+export async function chooseExecutable(emulatorId: string): Promise<EmulatorStatus | null> {
+  if (!inTauri()) return null;
+  const result = await open({
+    multiple: false,
+    title: "Vyber executable emulátora",
+    filters: [{ name: "Windows executable", extensions: ["exe"] }]
+  });
+  if (typeof result !== "string") return null;
+  return invoke<EmulatorStatus>("configure_emulator", { emulatorId, executable: result });
+}
+
+export async function chooseRetroArchCore(gameId: string): Promise<boolean> {
+  if (!inTauri()) return false;
+  const result = await open({
+    multiple: false,
+    title: "Vyber RetroArch core",
+    filters: [{ name: "Libretro core", extensions: ["dll"] }]
+  });
+  if (typeof result !== "string") return false;
+  await invoke("configure_retroarch_game", { gameId, corePath: result });
+  return true;
+}
+
+export async function scanWindowsGames(roots: string[] = []): Promise<WindowsDiscoveryResult> {
+  if (!inTauri()) return { candidates: [], scannedSources: ["Steam", "Epic Games", "GOG", "Windows skratky"], warnings: ["Discovery vyžaduje desktopovú aplikáciu."] };
+  return invoke<WindowsDiscoveryResult>("scan_windows_games", { roots });
+}
+
+export async function listWindowsCandidates(): Promise<WindowsGameCandidate[]> {
+  return inTauri() ? invoke<WindowsGameCandidate[]>("list_windows_candidates") : [];
+}
+
+export async function choosePortableScanRoot(): Promise<string | null> {
+  if (!inTauri()) return null;
+  const result = await open({ directory: true, multiple: false, title: "Vyber priečinok pre hlboký scan Windows hier" });
+  return typeof result === "string" ? result : null;
+}
+
+export async function confirmWindowsGames(candidateIds: string[]): Promise<Game[]> {
+  return inTauri() ? invoke<Game[]>("confirm_windows_games", { candidateIds }) : [];
+}
+
+export async function rejectWindowsGames(candidateIds: string[]): Promise<void> {
+  if (inTauri()) await invoke("reject_windows_games", { candidateIds });
+}
